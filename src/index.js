@@ -22,3 +22,5 @@ export { createViewsConfigLoader, createRelationViewLoader } from './core/views.
 export { default as ModelSearch } from './components/model/Search.vue'
 export { default as ModelRelations } from './components/model/Relations.vue'
 export { default as ModelSelect } from './components/model/Select.vue'
+export { default as ForeignKey } from './components/widgets/ForeignKey.vue'
+export { useViewTab } from './composables/tab.js'

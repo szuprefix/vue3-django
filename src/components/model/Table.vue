@@ -5,6 +5,7 @@ import { Cell, CellGroup, Search, Button, Pagination, NoticeBar } from 'vant'
 import { useDjango } from '../../composables/context.js'
 import { displayValue, normalizeItems } from '../../core/metadata.js'
 import ModelSearch from './Search.vue'
+import ForeignKey from '../widgets/ForeignKey.vue'
 const props = defineProps({
   appModel: { type: String, required: true },
   items: [Array, String],
@@ -12,8 +13,9 @@ const props = defineProps({
   pageSize: { type: Number, default: 10 },
   mobile: Boolean,
   rowActions: Array,
+  dblClickAction: String,
 })
-const emit = defineEmits(['loaded', 'edit', 'create', 'error'])
+const emit = defineEmits(['loaded', 'edit', 'create', 'error', 'row-dblclick'])
 const { registry, auth } = useDjango()
 const rows = ref([]),
   fields = ref([]),
@@ -71,6 +73,18 @@ function filterChanged(value) {
   queries.value = value
   search.value = value.search || ''
   onSearch()
+}
+function onRowDblClick(row, column, event) {
+  emit('row-dblclick', row, column, event)
+  const name = props.dblClickAction ?? views.value.list?.dblClickAction ?? 'edit'
+  if (!name) return
+  // Interactive controls handle their own navigation and actions.
+  if (event?.target?.closest?.('a, button, input, select, textarea, [role="button"]')) return
+  if (name === 'edit') emit('edit', row)
+  else {
+    const action = actions.value.find((item) => item.name === name)
+    if (action && (!action.show || action.show({ row }))) rowAction(action, row)
+  }
 }
 async function rowAction(action, row) {
   try {
@@ -175,8 +189,22 @@ defineExpose({ refresh: load, load })
           v-for="field in fields"
           :key="field.name"
           :title="field.label || field.name"
-          :value="String(displayValue(field, row[field.name]))"
-        />
+        >
+          <template #value>
+            <slot
+              :name="`column-${field.name}`"
+              :row="row"
+              :field="field"
+            >
+              <ForeignKey
+                v-if="field.model || field.relateModel"
+                :value="row"
+                :field="field"
+              />
+              <span v-else>{{ displayValue(field, row[field.name]) }}</span>
+            </slot>
+          </template>
+        </Cell>
         <Cell
           ><template #value
             ><Button
@@ -203,6 +231,7 @@ defineExpose({ refresh: load, load })
       <ElTable
         :data="rows"
         stripe
+        @row-dblclick="onRowDblClick"
       >
         <ElTableColumn
           v-for="field in fields"
@@ -216,7 +245,12 @@ defineExpose({ refresh: load, load })
               :name="`column-${field.name}`"
               :row="row"
               :field="field"
-              >{{ displayValue(field, row[field.name]) }}</slot
+              ><ForeignKey
+                v-if="field.model || field.relateModel"
+                :value="row"
+                :field="field"
+              />
+              <span v-else>{{ displayValue(field, row[field.name]) }}</span></slot
             ></template
           >
         </ElTableColumn>

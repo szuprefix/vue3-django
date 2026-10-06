@@ -5,6 +5,7 @@ import { Form as VanForm, Field as VanField, Button as VanButton, NoticeBar } fr
 import Field from '../form/Field.vue'
 import { useDjango } from '../../composables/context.js'
 import { emptyData, normalizeItems } from '../../core/metadata.js'
+import { useViewTab } from '../../composables/tab.js'
 const props = defineProps({
   appModel: { type: String, required: true },
   id: [String, Number],
@@ -15,6 +16,12 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue', 'loaded', 'form-posted', 'error'])
 const { registry } = useDjango()
+const tab = useViewTab()
+function updateTabTitle(object) {
+  if (!isEdit.value) return
+  const config = registry.getConfig(props.appModel)
+  tab?.update({ title: object.__str__ ?? object[config.title_field || 'name'], icon: config.icon })
+}
 const data = ref({}),
   fields = ref([]),
   errors = ref({}),
@@ -55,6 +62,7 @@ async function load() {
       (f) => !f.read_only,
     )
     data.value = { ...emptyData(metadata, props.defaults), ...object, ...props.modelValue }
+    updateTabTitle(object)
     emit('update:modelValue', { ...data.value })
     emit('loaded', model)
   } catch (error) {
@@ -88,6 +96,7 @@ async function submit() {
   try {
     const result = await registry.get(props.appModel).save(data.value, props.id, props.defaults)
     data.value = { ...data.value, ...result }
+    updateTabTitle(result)
     emit('update:modelValue', { ...data.value })
     emit('form-posted', { model: registry.getConfig(props.appModel), data: result, intent: 'save' })
     return result

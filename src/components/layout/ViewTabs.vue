@@ -2,6 +2,7 @@
 import { computed, defineComponent, h, provide, shallowReactive, shallowRef, watch } from 'vue'
 import { RouterView, routeLocationKey, useRoute, useRouter } from 'vue-router'
 import { ElTabs, ElTabPane } from 'element-plus'
+import { TabKey } from '../../composables/tab.js'
 const props = defineProps({ fallback: { type: String, default: '/' } })
 const route = useRoute(),
   router = useRouter(),
@@ -16,6 +17,13 @@ const RouteTab = defineComponent({
       (value) => Object.assign(localRoute, value),
     )
     provide(routeLocationKey, localRoute)
+    provide(TabKey, {
+      update({ title, icon }) {
+        if (title != null && title !== '') props.tab.title = String(title)
+        if (icon !== undefined) props.tab.icon = icon
+        props.tab.customTitle = true
+      },
+    })
     return () =>
       h(
         RouterView,
@@ -32,12 +40,14 @@ function changeRoute(to) {
   const tab = {
     name: to.path,
     title: to.params.id != null ? `${title} #${to.params.id}` : title,
-    icon: to.meta.icon,
+    icon: to.meta.icon || to.meta.model?.icon,
     to,
   }
   const existing = tabs.value.find((t) => t.name === tab.name)
-  if (existing) Object.assign(existing, tab)
-  else tabs.value = [...tabs.value, shallowReactive(tab)]
+  if (existing) {
+    if (existing.customTitle) tab.title = existing.title
+    Object.assign(existing, tab)
+  } else tabs.value = [...tabs.value, shallowReactive(tab)]
 }
 watch(
   () => route.fullPath,
@@ -85,7 +95,25 @@ defineExpose({ tabs, tabRemove, clearTabs, resetTabs })
       :closable="tabs.length > 1"
     >
       <template #label
-        ><span :title="tab.title">{{
+        ><component
+          v-if="tab.icon && typeof tab.icon !== 'string'"
+          :is="tab.icon"
+          class="tab-icon"
+          aria-hidden="true"
+        />
+        <i
+          v-else-if="tab.icon && /^[a-zA-Z][\w -]*$/.test(tab.icon)"
+          :class="tab.icon.includes(' ') ? tab.icon : `fa fa-${tab.icon}`"
+          class="tab-icon"
+          aria-hidden="true"
+        />
+        <span
+          v-else-if="tab.icon"
+          class="tab-icon"
+          aria-hidden="true"
+          >{{ tab.icon }}</span
+        >
+        <span :title="tab.title">{{
           tab.title.length > 19 ? `${tab.title.slice(0, 16)}…` : tab.title
         }}</span></template
       >
@@ -99,5 +127,10 @@ defineExpose({ tabs, tabRemove, clearTabs, resetTabs })
 }
 .viewtabs :deep(.el-tabs__item) {
   font-size: 0.8rem;
+}
+.tab-icon {
+  width: 1em;
+  height: 1em;
+  margin-right: 6px;
 }
 </style>
