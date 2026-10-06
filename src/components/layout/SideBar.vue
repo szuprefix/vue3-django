@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMenu, ElMenuItem, ElSubMenu } from 'element-plus'
+import Icon from '../widgets/Icon.vue'
 const props = defineProps({ menus: { type: Object, default: () => ({}) }, collapse: Boolean })
 const emit = defineEmits(['navigate'])
 const route = useRoute(),
@@ -34,18 +35,21 @@ async function select(path) {
         <ElSubMenu
           v-if="group.items.length > 1"
           :index="group.name"
-          ><template #title>{{ group.name }}</template
+          ><template #title
+            ><Icon :icon="group.icon" /><span>{{ group.name }}</span></template
           ><ElMenuItem
             v-for="item in group.items"
             :key="item.url"
             :index="item.url"
-            >{{ item.name }}</ElMenuItem
+            ><Icon :icon="item.icon" /><template #title>{{ item.name }}</template></ElMenuItem
           ></ElSubMenu
         >
         <ElMenuItem
           v-else
           :index="group.items[0].url"
-          ><template #title>{{ group.items[0].name }}</template></ElMenuItem
+          ><Icon :icon="group.items[0].icon || group.icon" /><template #title>{{
+            group.items[0].name
+          }}</template></ElMenuItem
         >
       </template>
     </ElMenu>
