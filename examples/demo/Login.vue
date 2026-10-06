@@ -1,65 +1,49 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElInput, ElButton, ElAlert } from 'element-plus'
+import { Form } from '../../src/index.js'
 import { useDjango } from '../../src/composables/context.js'
 import { safeRedirect } from '../../src/router/index.js'
 const { auth } = useDjango()
 const router = useRouter(),
   route = useRoute()
-const username = ref(localStorage.getItem('auth.username') || ''),
-  password = ref(''),
-  busy = ref(false),
-  error = ref('')
-async function submit() {
-  if (busy.value) return
-  busy.value = true
-  error.value = ''
-  try {
-    await auth.login(username.value, password.value)
-    localStorage.setItem('auth.username', username.value)
-    password.value = ''
-    await router.replace(safeRedirect(route.query.redirect))
-  } catch (e) {
-    error.value = e.fields?.non_field_errors || e.msg?.detail || e.message
-  } finally {
-    busy.value = false
-  }
+const values = ref({
+  username: localStorage.getItem('auth.username') || '',
+  password: '',
+})
+const items = [
+  { name: 'username', label: '帐号', required: true, autocomplete: 'username' },
+  {
+    name: 'password',
+    label: '密码',
+    required: true,
+    widget: 'password',
+    autocomplete: 'current-password',
+  },
+]
+function submit({ formValue }) {
+  return auth.login(formValue.username, formValue.password)
+}
+async function done() {
+  localStorage.setItem('auth.username', values.value.username)
+  values.value.password = ''
+  await router.replace(safeRedirect(route.query.redirect))
 }
 </script>
 <template>
   <main class="login">
-    <h1>登录 vue3-django</h1>
-    <form @submit.prevent="submit">
-      <ElAlert
-        v-if="error"
-        :title="String(error)"
-        type="error"
-        :closable="false"
-      />
-      <label for="username">帐号</label
-      ><ElInput
-        id="username"
-        v-model="username"
-        autocomplete="username"
-        required
-      />
-      <label for="password">密码</label
-      ><ElInput
-        id="password"
-        v-model="password"
-        type="password"
-        autocomplete="current-password"
-        required
-        show-password
-      />
-      <ElButton
-        native-type="submit"
-        type="primary"
-        :loading="busy"
-        >登录</ElButton
-      >
-    </form>
+    <Form
+      v-model="values"
+      :items="items"
+      :submit="submit"
+      submit-name="登录"
+      success-info="登录成功"
+      one-column
+      label-position="top"
+      @form-posted="done"
+    >
+      <template #header><h1>登录 vue3-django</h1></template>
+    </Form>
   </main>
 </template>
 <style scoped>
@@ -67,10 +51,6 @@ async function submit() {
   max-width: 400px;
   margin: 80px auto;
   padding: 24px;
-}
-form {
-  display: grid;
-  gap: 16px;
 }
 h1 {
   font-size: 24px;

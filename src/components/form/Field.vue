@@ -99,8 +99,9 @@ function mobileInput(v) {
   <ElInput
     v-else
     v-model="value"
-    :type="field.widget === 'textarea' ? 'textarea' : 'text'"
+    :type="['textarea', 'password'].includes(field.widget) ? field.widget : 'text'"
     :maxlength="field.max_length"
+    :autocomplete="field.autocomplete"
     :placeholder="field.help_text"
   />
 </template>
