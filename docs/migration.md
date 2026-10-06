@@ -18,19 +18,20 @@
 
 ## Vue 3 必改项
 
-| 旧版 | 新版 |
-| --- | --- |
-| Vue.use / Vue.prototype | app.use / app.config.globalProperties |
-| value + input | modelValue + update:modelValue |
-| .sync | v-model:参数 |
-| slot / slot-scope | #slot="scope" |
-| $listeners | $attrs 中合并事件 |
-| beforeDestroy | beforeUnmount |
-| $on/$off 事件总线 | 宿主暂接管保存事件，下一轮引入 scoped 事件机制 |
-| 动态 import 模板路径 | 宿主 import.meta.glob 注入 loadViewsConfig |
-| element-ui / vux | element-plus / vant |
+| 旧版                    | 新版                                           |
+| ----------------------- | ---------------------------------------------- |
+| Vue.use / Vue.prototype | app.use / app.config.globalProperties          |
+| value + input           | modelValue + update:modelValue                 |
+| .sync                   | v-model:参数                                   |
+| slot / slot-scope       | #slot="scope"                                  |
+| $listeners              | $attrs 中合并事件                              |
+| beforeDestroy           | beforeUnmount                                  |
+| $on/$off 事件总线       | 宿主暂接管保存事件，下一轮引入 scoped 事件机制 |
+| 动态 import 模板路径    | 宿主 import.meta.glob 注入 loadViewsConfig     |
+| element-ui / vux        | element-plus / vant                            |
 
 不是所有原有 config 配置都已实现：batchActions、topActions、string do 路由及复杂字段见迭代计划。不要将旧目录的 src 全量复制后假设已经兼容。
+
 ## 路由与登录迁移
 
 `ViewTabs` 接替旧版同名布局组件：按 route.path 去重、使用 meta.title、保留切换前的页面实例和 query/hash，关闭当前页优先选择右侧再选择左侧。

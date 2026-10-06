@@ -13,9 +13,16 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  build: mode === 'demo' ? { outDir: 'dist-demo' } : {
-    lib: { entry: fileURLToPath(new URL('./src/index.js', import.meta.url)), formats: ['es'], fileName: 'vue3-django' },
-    rollupOptions: { external: ['vue', 'vue-router', 'axios', 'qs', 'element-plus', 'vant'] },
-  },
+  build:
+    mode === 'demo'
+      ? { outDir: 'dist-demo' }
+      : {
+          lib: {
+            entry: fileURLToPath(new URL('./src/index.js', import.meta.url)),
+            formats: ['es'],
+            fileName: 'vue3-django',
+          },
+          rollupOptions: { external: ['vue', 'vue-router', 'axios', 'qs', 'element-plus', 'vant'] },
+        },
   test: { environment: 'jsdom' },
 }))

@@ -30,7 +30,7 @@ const modules = import.meta.glob('/src/views/**/config.js')
 const registry = createRegistry({
   http: createHttp({ baseURL: '/api/' }),
   apps: { crm: { models: { customer: { verbose_name: '客户' } } } },
-  loadViewsConfig: async fullName => {
+  loadViewsConfig: async (fullName) => {
     const load = modules[`/src/views/${fullName.replace('.', '/')}/config.js`]
     return load ? (await load()).default : {}
   },
@@ -43,8 +43,15 @@ createApp(App).use(createDjango({ registry })).mount('#app')
 import { ModelTable, ModelForm } from 'vue3-django'
 </script>
 <template>
-  <ModelTable app-model="crm.customer" @edit="row => console.log(row)" />
-  <ModelForm app-model="crm.customer" :id="123" @form-posted="console.log" />
+  <ModelTable
+    app-model="crm.customer"
+    @edit="(row) => console.log(row)"
+  />
+  <ModelForm
+    app-model="crm.customer"
+    :id="123"
+    @form-posted="console.log"
+  />
 </template>
 ```
 
@@ -56,10 +63,14 @@ import { ModelTable, ModelForm } from 'vue3-django'
 export default {
   list: {
     items: ['id', 'name', 'is_active'],
-    options: { remoteTable: { rowActions: [
-      { name: 'disable', label: '禁用', api: 'disable' },
-      { name: 'inspect', label: '查看', do: ({ row, model }) => console.log(row, model) },
-    ] } },
+    options: {
+      remoteTable: {
+        rowActions: [
+          { name: 'disable', label: '禁用', api: 'disable' },
+          { name: 'inspect', label: '查看', do: ({ row, model }) => console.log(row, model) },
+        ],
+      },
+    },
   },
   form: { items: ['name', { name: 'is_active', label: '启用' }] },
 }
