@@ -20,10 +20,15 @@ export function createDjangoRouter({ routes = [], auth, history = createWebHashH
   return router
 }
 
-export function genModelRouters(apps, component) {
+export function genModelRouters(apps, components) {
+  const views = typeof components === 'object' && components.list ? components : { list: components, create: components, edit: components }
   return Object.entries(apps).flatMap(([app, definition]) => definition.hidden === true || definition.hidden === 'true' ? [] :
-    Object.entries(definition.models ?? {}).map(([name, model]) => ({
-      path: `/${app}/${name}/`, name: `${app}-${name}-list`, component,
-      props: { appModel: `${app}.${name}` }, meta: { title: `${model.verbose_name ?? name}列表`, model },
-    })))
+    Object.entries(definition.models ?? {}).flatMap(([name, model]) => {
+      const path = `/${app}/${name}/`, appModel = `${app}.${name}`, title = model.verbose_name ?? name
+      return [
+        { path, name: `${app}-${name}-list`, component: views.list, props: { appModel, mode: 'list' }, meta: { title: `${title}列表`, model } },
+        { path: `${path}add/`, name: `${app}-${name}-add`, component: views.create ?? views.edit, props: { appModel, mode: 'create' }, meta: { title: `新增${title}`, model } },
+        { path: `${path}:id/`, name: `${app}-${name}-edit`, component: views.edit, props: route => ({ appModel, mode: 'edit', id: route.params.id }), meta: { title: `编辑${title}`, model } },
+      ]
+    }))
 }

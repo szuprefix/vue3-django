@@ -18,7 +18,8 @@ const RouteTab = defineComponent({
 })
 function changeRoute(to) {
   if (to.meta.layout === 'main' || to.meta.tabs === false || !to.matched.length) return
-  const tab = { name: to.path, title: to.meta.title || to.path, icon: to.meta.icon, to }
+  const title = to.meta.title || to.path
+  const tab = { name: to.path, title: to.params.id != null ? `${title} #${to.params.id}` : title, icon: to.meta.icon, to }
   const existing = tabs.value.find(t => t.name === tab.name)
   if (existing) Object.assign(existing, tab)
   else tabs.value = [...tabs.value, shallowReactive(tab)]

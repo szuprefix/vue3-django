@@ -43,5 +43,5 @@ JWT 响应使用 `token.access`，Authorization 为 Bearer，cookie 名保留 `a
 登录页路径保留 `/auth/login/`，帐号记忆保留 `auth.username`，不保存密码。
 默认 hash 路由可避免现有 Django URLconf 增加 SPA fallback；需要 history 模式时传入 Vue Router history 实例。
 路由默认需要登录，公开页面设置 `meta.loginRequired: false`。认证失败（401/403）回跳登录，网络与服务器错误保留原错误。
-`genModelRouters(apps, component)` 当前生成旧格式的模型列表地址与名称，模型动作、布局和权限菜单迁移尚未覆盖。
+`genModelRouters(apps, { list, create, edit })` 生成 `/<app>/<model>/`、`/<app>/<model>/add/` 和旧版编辑路径 `/<app>/<model>/:id/`；传单个组件仍可用，该组件通过 mode 区分页面。路由 props 提供 appModel/mode/id，编辑记录按路径各占一个 tab。模型动作、布局和权限菜单迁移尚未覆盖。
 真实演示启动：`VITE_REAL_API=true npm run dev -- --port 5173`，列表地址为 `/#/course/category/`，登录地址为 `/#/auth/login/`。

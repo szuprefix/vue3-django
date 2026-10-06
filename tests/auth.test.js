@@ -1,8 +1,18 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { createAuth } from '../src/core/auth.js'
-import { createDjangoRouter, safeRedirect } from '../src/router/index.js'
+import { createDjangoRouter, genModelRouters, safeRedirect } from '../src/router/index.js'
 describe('认证与路由兼容', () => {
+  it('模型路由保留旧编辑路径，新增地址优先于主键匹配', () => {
+    const component = { template: '<div />' }
+    const router = createDjangoRouter({ history: createMemoryHistory(), routes: genModelRouters({ course: { models: { category: { verbose_name: '类别' } } } }, { list: component, create: component, edit: component }) })
+    expect(router.resolve('/course/category/').name).toBe('course-category-list')
+    expect(router.resolve('/course/category/add/').name).toBe('course-category-add')
+    const edit = router.resolve('/course/category/0/')
+    expect(edit.name).toBe('course-category-edit')
+    expect(edit.params.id).toBe('0')
+    expect(edit.matched[0].props.default(edit)).toEqual({ appModel: 'course.category', mode: 'edit', id: '0' })
+  })
   it('沿用 JWT 登录协议，读取用户后返回，并清理退出状态', async () => {
     const http = { defaults: { headers: { common: {} } }, post: vi.fn().mockResolvedValue({ data: { token: { access: 'test' } } }), get: vi.fn().mockResolvedValue({ data: { id: 1, username: 'admin' } }) }
     const auth = createAuth({ http })

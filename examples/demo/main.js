@@ -1,7 +1,7 @@
-import { createApp } from 'vue'
+import { createApp, reactive } from 'vue'
 import 'element-plus/dist/index.css'
 import 'vant/lib/index.css'
-import { createHttp, createRegistry, createDjango, createAuth, createDjangoRouter } from '../../src/index.js'
+import { createHttp, createRegistry, createDjango, createAuth, createDjangoRouter, genModelRouters } from '../../src/index.js'
 import { demoAdapter } from './mock.js'
 import App from './App.vue'
 import Root from './Root.vue'
@@ -27,7 +27,7 @@ const modelPath = realApi ? '/course/category/' : '/demo/project/'
 const router = createDjangoRouter({ auth, routes: [
   { path: '/', redirect: modelPath },
   realApi ? { path: '/auth/login/', component: Login, meta: { loginRequired: false, layout: 'main', title: '登录' } } : { path: '/auth/login/', redirect: modelPath },
-  { path: modelPath, component: App, meta: { loginRequired: realApi, title: realApi ? '课程类别列表' : '项目列表' } },
+  ...genModelRouters(realApi ? { course: { models: { category: registry.getConfig('course.category') } } } : { demo: { models: { project: registry.getConfig('demo.project') } } }, { list: App, create: App, edit: App }),
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ] })
-createApp(Root).use(createDjango({ registry, auth })).use(router).mount('#app')
+createApp(Root).use(createDjango({ registry, auth, revisions: reactive({}) })).use(router).mount('#app')

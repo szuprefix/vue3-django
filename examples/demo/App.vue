@@ -1,22 +1,32 @@
 <script setup>
-import { ref } from 'vue'
-import { ElButton, ElDialog, ElMessage } from 'element-plus'
-import { Popup } from 'vant'
+import { ref, watch, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElButton, ElMessage } from 'element-plus'
 import { ModelTable, ModelForm } from '../../src/index.js'
+import { useDjango } from '../../src/composables/context.js'
+const props = defineProps({ appModel: String, mode: { type: String, default: 'list' }, id: [String, Number] })
+const router = useRouter(), route = useRoute(), { revisions } = useDjango()
 const realApi = import.meta.env.VITE_REAL_API === 'true'
-const appModel = realApi ? 'course.category' : 'demo.project'
-const mobile = ref(false), editing = ref(false), id = ref(), table = ref()
-function edit(row) { id.value = row?.id; editing.value = true }
-function saved() { editing.value = false; table.value.refresh(); ElMessage.success('保存成功') }
+const appModel = computed(() => props.appModel)
+const mobile = ref(false), table = ref()
+const listPath = computed(() => `/${props.appModel.replace('.', '/')}/`)
+function edit(row) { router.push({ name: `${props.appModel.replace('.', '-')}-${row ? 'edit' : 'add'}`, params: row ? { id: row.id } : {} }) }
+async function saved({ data }) {
+  revisions[props.appModel] = (revisions[props.appModel] || 0) + 1
+  ElMessage.success('保存成功')
+  if (props.mode === 'create') await router.replace({ name: `${props.appModel.replace('.', '-')}-edit`, params: { id: data.id } })
+}
+watch(() => revisions[props.appModel], () => table.value?.refresh())
 </script>
 <template>
   <main>
     <header><div><span class="brand">vue3-django</span><p>继承 Django Admin 的自动化思想，让业务配置驱动界面。</p></div><ElButton @click="mobile = !mobile">{{ mobile ? '切换桌面端' : '切换移动端' }}</ElButton></header>
     <aside v-if="realApi">真实 API 测试 · Django http://127.0.0.1:8000 · course.category</aside>
     <aside v-else>第一轮迭代 · 本地演示数据 · 刷新后重置 · 尚未连接实际后端</aside>
-    <article :class="{ mobile }"><ModelTable ref="table" :app-model="appModel" :mobile="mobile" @create="edit()" @edit="edit" /></article>
-    <Popup v-if="mobile" v-model:show="editing" position="bottom" round style="padding:24px 0;max-height:85vh;overflow:auto"><h2 class="popup-title">{{ id == null ? '新增记录' : '编辑记录' }}</h2><ModelForm v-if="editing" :key="id ?? 'new'" :app-model="appModel" :id="id" mobile @form-posted="saved" /></Popup>
-    <ElDialog v-else v-model="editing" :title="id == null ? '新增记录' : '编辑记录'" width="min(560px, 92vw)" destroy-on-close><ModelForm v-if="editing" :key="id ?? 'new'" :app-model="appModel" :id="id" @form-posted="saved" /></ElDialog>
+    <article :class="{ mobile }">
+      <ModelTable v-if="mode === 'list'" ref="table" :app-model="appModel" :mobile="mobile" @create="edit()" @edit="edit" />
+      <template v-else><h2>{{ route.meta.title }}{{ mode === 'edit' ? ` #${id}` : '' }}</h2><ElButton @click="router.push(listPath)">返回列表</ElButton><ModelForm :app-model="appModel" :id="mode === 'edit' ? id : undefined" :mobile="mobile" @form-posted="saved" /></template>
+    </article>
     <footer>OPTIONS 元数据 → 模型注册 → 配置覆盖 → 桌面 / 移动组件</footer>
   </main>
 </template>
