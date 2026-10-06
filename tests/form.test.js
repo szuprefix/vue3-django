@@ -22,6 +22,28 @@ function mountForm(http, mobile = false) {
   })
 }
 describe('同一模型的桌面和移动表单', () => {
+  it('ModelForm 复用通用 Form 并透传字段与提交插槽', async () => {
+    const http = {
+      post: vi.fn().mockResolvedValue({ data: { id: 3, name: '插槽值', enabled: false } }),
+    }
+    const wrapper = mount(ModelForm, {
+      props: { appModel: 'demo.project' },
+      slots: {
+        'field-name':
+          '<template #field-name="{ update }"><button type="button" class="custom-field" @click="update(\'插槽值\')">自定义字段</button></template>',
+        submit:
+          '<template #submit="{ submit }"><button type="button" class="custom-submit" @click="submit">自定义保存</button></template>',
+      },
+      global: { provide: { [DjangoKey]: { registry: registry(http) } } },
+    })
+    await flushPromises()
+    await wrapper.find('.custom-field').trigger('click')
+    await wrapper.find('.custom-submit').trigger('click')
+    await flushPromises()
+    expect(http.post).toHaveBeenCalledWith('demo/project/', { name: '插槽值', enabled: false })
+    expect(wrapper.emitted('form-posted')[0][0].intent).toBe('save')
+    wrapper.unmount()
+  })
   for (const mobile of [false, true]) {
     it(`${mobile ? 'Vant' : 'Element Plus'} 保存并回显 DRF 错误`, async () => {
       const http = {

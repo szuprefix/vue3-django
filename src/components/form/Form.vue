@@ -6,6 +6,7 @@ import { normalizeItems, getItemRules } from './Form.js'
 import { joinErrors } from '../../core/http.js'
 import { useDjango } from '../../composables/context.js'
 import Schema from 'async-validator'
+import { Form as VanForm, Field as VanField, Button as VanButton, NoticeBar } from 'vant'
 defineOptions({ inheritAttrs: false })
 const props = defineProps({
   modelValue: Object,
@@ -19,6 +20,8 @@ const props = defineProps({
   submit: Function,
   submitName: { type: String, default: '提交' },
   successInfo: String,
+  showSuccess: { type: Boolean, default: true },
+  disabled: Boolean,
   noLabel: Boolean,
   oneColumn: Boolean,
   inline: Boolean,
@@ -55,7 +58,7 @@ function update(name, value) {
   publish()
 }
 async function onSubmit() {
-  if (loading.value) return
+  if (loading.value || props.disabled) return
   errors.value = {}
   try {
     for (const field of formItems.value) {
@@ -65,8 +68,10 @@ async function onSubmit() {
     const Validator = Schema.default || Schema
     await new Validator(rules.value).validate(formValue.value)
     await nextTick()
-    const valid = await form.value.validate()
-    if (!valid) return false
+    if (!props.mobile) {
+      const valid = await form.value.validate()
+      if (!valid) return false
+    }
   } catch (validation) {
     if (validation.fields)
       errors.value = Object.fromEntries(
@@ -101,7 +106,7 @@ async function onSubmit() {
       data = response.data
     }
     if (data === false) return false
-    ElMessage.success(props.successInfo || `${props.submitName}成功`)
+    if (props.showSuccess) ElMessage.success(props.successInfo || `${props.submitName}成功`)
     emit('form-posted', data)
     return data
   } catch (error) {
@@ -120,7 +125,75 @@ defineExpose({ ...context, submit: onSubmit })
 </script>
 
 <template>
+  <VanForm
+    v-if="mobile"
+    :aria-busy="loading"
+    @submit="onSubmit"
+  >
+    <slot name="header" />
+    <NoticeBar
+      v-if="errors.non_field_errors || errors.detail"
+      :text="errors.non_field_errors || errors.detail"
+    />
+    <template
+      v-for="field in formItems"
+      :key="field.name"
+    >
+      <VanField
+        v-if="!field.hidden && field.widget !== 'hidden'"
+        :label="noLabel || field.noLabel ? '' : field.label"
+        :required="field.required"
+        :error-message="errors[field.name]"
+      >
+        <template #input>
+          <slot
+            :name="`field-${field.name}`"
+            :field="field"
+            :value="formValue[field.name]"
+            :update="(value) => update(field.name, value)"
+          >
+            <span v-if="typeof field.widget === 'function'">{{ field.widget(formValue) }}</span>
+            <Field
+              v-else
+              :field="field"
+              :model-value="formValue[field.name]"
+              mobile
+              @update:model-value="update(field.name, $event)"
+            />
+          </slot>
+        </template>
+      </VanField>
+    </template>
+    <slot
+      v-if="submitName"
+      name="submit"
+      :submit="onSubmit"
+      :loading="loading"
+      :saving="loading"
+    >
+      <template v-if="actions"
+        ><VanButton
+          v-for="action in actions"
+          :key="action.name"
+          :disabled="loading || disabled"
+          @click="action.name === 'submit' ? onSubmit() : action.do?.(context)"
+          >{{ action.label || action.name }}</VanButton
+        ></template
+      >
+      <VanButton
+        v-else
+        block
+        type="primary"
+        native-type="submit"
+        :loading="loading"
+        :disabled="disabled"
+        >{{ submitName }}</VanButton
+      >
+    </slot>
+    <slot name="footer" />
+  </VanForm>
   <ElForm
+    v-else
     ref="form"
     v-bind="{ ...options.elForm, ...attrs }"
     :model="formValue"
@@ -183,13 +256,14 @@ defineExpose({ ...context, submit: onSubmit })
             name="submit"
             :submit="onSubmit"
             :loading="loading"
+            :saving="loading"
           >
             <template v-if="actions"
               ><ElButton
                 v-for="action in actions"
                 :key="action.name"
                 :type="action.type"
-                :disabled="loading"
+                :disabled="loading || disabled"
                 @click="action.name === 'submit' ? onSubmit() : action.do?.(context)"
                 >{{ action.label || action.name }}</ElButton
               ></template
@@ -199,6 +273,7 @@ defineExpose({ ...context, submit: onSubmit })
               type="primary"
               native-type="submit"
               :loading="loading"
+              :disabled="disabled"
               >{{ submitName }}</ElButton
             >
           </slot>

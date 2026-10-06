@@ -60,7 +60,7 @@ function mobileInput(v) {
       v-else
       :model-value="value == null ? '' : String(value)"
       :type="numberType ? 'number' : field.widget === 'textarea' ? 'textarea' : 'text'"
-      :placeholder="field.help_text || '请输入'"
+      :placeholder="field.placeholder ?? field.help_text ?? '请输入'"
       :aria-label="field.label || field.name"
       @update:model-value="mobileInput"
     />
@@ -70,6 +70,8 @@ function mobileInput(v) {
     v-model="value"
     :multiple="field.multiple"
     :clearable="field.allow_null"
+    :placeholder="field.placeholder"
+    :aria-label="field.label || field.name"
     style="width: 100%"
   >
     <ElOption
@@ -89,12 +91,15 @@ function mobileInput(v) {
     :precision="field.type === 'integer' ? 0 : undefined"
     :min="field.min_value"
     :max="field.max_value"
+    :placeholder="field.placeholder"
+    :aria-label="field.label || field.name"
   />
   <ElDatePicker
     v-else-if="['date', 'datetime'].includes(field.type)"
     v-model="value"
     :type="field.type"
     :value-format="field.type === 'date' ? 'YYYY-MM-DD' : 'YYYY-MM-DDTHH:mm:ssZ'"
+    :placeholder="field.placeholder"
   />
   <ElInput
     v-else
@@ -102,6 +107,7 @@ function mobileInput(v) {
     :type="['textarea', 'password'].includes(field.widget) ? field.widget : 'text'"
     :maxlength="field.max_length"
     :autocomplete="field.autocomplete"
-    :placeholder="field.help_text"
+    :placeholder="field.placeholder ?? field.help_text"
+    :aria-label="field.label || field.name"
   />
 </template>

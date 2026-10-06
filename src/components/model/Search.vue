@@ -27,13 +27,23 @@ watch(
       fields.value = normalizeItems(
         props.items ?? options.actions?.SEARCH?.filter_fields ?? [],
         metadata,
-      ).map((field) => ({
-        ...field,
-        ...config.search?.[field.name],
-        read_only: false,
-        required: false,
-        multiple: false,
-      }))
+      ).map((field) => {
+        const configured = { ...field, ...config.search?.[field.name] }
+        const selection =
+          configured.model ||
+          configured.relateModel ||
+          configured.choices ||
+          configured.type === 'boolean'
+        return {
+          ...configured,
+          placeholder:
+            configured.placeholder ??
+            `${selection ? '请选择' : '请输入'}${configured.label || configured.name}`,
+          read_only: false,
+          required: false,
+          multiple: false,
+        }
+      })
       form.value = {}
     } catch (e) {
       emit('error', e)
@@ -70,11 +80,12 @@ function reset() {
       v-for="field in fields"
       :key="field.name"
     >
-      <label>{{ field.label || field.name }}</label>
       <ElSelect
         v-if="field.type === 'boolean'"
         v-model="form[field.name]"
         clearable
+        :placeholder="field.placeholder"
+        :aria-label="field.label || field.name"
         ><ElOption
           label="是"
           :value="true" /><ElOption

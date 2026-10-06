@@ -7,7 +7,7 @@ export function defaultRuleType(field) {
 
 export function defaultRules(field) {
   const rules = []
-  if (field.required)
+  if (field.required && !field.allow_null)
     rules.push({ required: true, type: defaultRuleType(field), message: '不能为空' })
   if (field.min_length != null)
     rules.push({ min: field.min_length, message: `长度最小为${field.min_length}` })
