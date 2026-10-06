@@ -2,7 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElButton, ElMessage } from 'element-plus'
-import { ModelTable, ModelForm } from '../../src/index.js'
+import { ModelTable, ModelForm, ModelRelations } from '../../src/index.js'
 import { useDjango } from '../../src/composables/context.js'
 const props = defineProps({
   appModel: String,
@@ -16,6 +16,7 @@ const realApi = import.meta.env.VITE_REAL_API === 'true'
 const appModel = computed(() => props.appModel)
 const mobile = ref(false),
   table = ref()
+const object = ref({})
 const listPath = computed(() => `/${props.appModel.replace('.', '/')}/`)
 function edit(row) {
   router.push({
@@ -64,7 +65,18 @@ watch(
           :app-model="appModel"
           :id="mode === 'edit' ? id : undefined"
           :mobile="mobile"
-          @form-posted="saved"
+          @update:model-value="object = $event"
+          @form-posted="saved" /><ModelRelations
+          v-if="mode === 'edit' && object.id != null"
+          :parent="{ appModel, data: { ...object, id } }"
+          @parent-updated="object = $event"
+          :mobile="mobile"
+          @edit="
+            router.push({
+              name: `${$event.appModel.replace('.', '-')}-edit`,
+              params: { id: $event.row.id },
+            })
+          "
       /></template>
     </article>
     <footer>OPTIONS 元数据 → 模型注册 → 配置覆盖 → 桌面 / 移动组件</footer>

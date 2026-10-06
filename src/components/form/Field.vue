@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { ElInput, ElInputNumber, ElSwitch, ElSelect, ElOption, ElDatePicker } from 'element-plus'
 import { Field as VanField, Switch as VanSwitch } from 'vant'
 import { displayValue } from '../../core/metadata.js'
+import ModelSelect from '../model/Select.vue'
 const props = defineProps({
   field: { type: Object, required: true },
   modelValue: null,
@@ -21,6 +22,12 @@ function mobileInput(v) {
     v-else-if="field.widget && typeof field.widget !== 'string'"
     :is="field.widget"
     v-model="value"
+    :field="field"
+  />
+  <ModelSelect
+    v-else-if="field.model || field.relateModel"
+    v-model="value"
+    :app-model="field.relateModel || field.model"
     :field="field"
   />
   <template v-else-if="mobile">

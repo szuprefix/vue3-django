@@ -4,12 +4,14 @@ import { ElTable, ElTableColumn, ElInput, ElButton, ElPagination, ElAlert } from
 import { Cell, CellGroup, Search, Button, Pagination, NoticeBar } from 'vant'
 import { useDjango } from '../../composables/context.js'
 import { displayValue, normalizeItems } from '../../core/metadata.js'
+import ModelSearch from './Search.vue'
 const props = defineProps({
   appModel: { type: String, required: true },
   items: [Array, String],
   baseQueries: { type: Object, default: () => ({}) },
   pageSize: { type: Number, default: 10 },
   mobile: Boolean,
+  rowActions: Array,
 })
 const emit = defineEmits(['loaded', 'edit', 'create', 'error'])
 const { registry, auth } = useDjango()
@@ -21,6 +23,7 @@ const rows = ref([]),
   loading = ref(false),
   message = ref('')
 const views = ref({})
+const queries = ref({})
 const title = computed(() => registry.getConfig(props.appModel).verbose_name ?? props.appModel)
 let generation = 0
 async function load() {
@@ -31,6 +34,7 @@ async function load() {
     const model = registry.get(props.appModel)
     const [metadata, config] = await Promise.all([model.fields(), model.loadViewsConfig()])
     const result = await model.query({
+      ...queries.value,
       search: search.value || undefined,
       page: page.value,
       page_size: props.pageSize,
@@ -63,6 +67,11 @@ function onSearch() {
   if (page.value !== 1) page.value = 1
   else load()
 }
+function filterChanged(value) {
+  queries.value = value
+  search.value = value.search || ''
+  onSearch()
+}
 async function rowAction(action, row) {
   try {
     const model = registry.get(props.appModel)
@@ -82,7 +91,12 @@ async function rowAction(action, row) {
   }
 }
 const actions = computed(() =>
-  (views.value.list?.rowActions ?? views.value.list?.options?.remoteTable?.rowActions ?? [])
+  (
+    props.rowActions ??
+    views.value.list?.rowActions ??
+    views.value.list?.options?.remoteTable?.rowActions ??
+    []
+  )
     .filter((action) => {
       if (!action.permission) return true
       const permissions = auth?.state.user?.model_permissions?.[props.appModel]
@@ -132,18 +146,12 @@ defineExpose({ refresh: load, load })
       @search="onSearch"
       @clear="onSearch"
     />
-    <form
+    <ModelSearch
       v-else
-      class="vd-toolbar"
-      @submit.prevent="onSearch"
-    >
-      <ElInput
-        v-model="search"
-        placeholder="搜索记录"
-        clearable
-        aria-label="搜索记录"
-      /><ElButton native-type="submit">搜索</ElButton><ElButton @click="load">刷新</ElButton>
-    </form>
+      :app-model="appModel"
+      @change="filterChanged"
+      @error="message = $event.message"
+    />
     <NoticeBar
       v-if="message && mobile"
       :text="message"

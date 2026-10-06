@@ -55,6 +55,7 @@ async function load() {
       (f) => !f.read_only,
     )
     data.value = { ...emptyData(metadata, props.defaults), ...object, ...props.modelValue }
+    emit('update:modelValue', { ...data.value })
     emit('loaded', model)
   } catch (error) {
     if (current === generation) {
