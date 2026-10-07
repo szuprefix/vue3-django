@@ -39,6 +39,7 @@ const fields = ref([]),
   search = ref(''),
   message = ref('')
 const views = ref({})
+const searchExclude = computed(() => ({ ...views.value.list?.baseQueries, ...props.baseQueries }))
 const queries = ref({})
 const title = computed(() => registry.getConfig(props.appModel).verbose_name ?? props.appModel)
 let generation = 0
@@ -190,7 +191,7 @@ defineExpose({ refresh: load, load })
       v-if="!mobile && showSearch"
       :app-model="appModel"
       :items="searchItems"
-      :exclude="{ ...views.list?.baseQueries, ...baseQueries }"
+      :exclude="searchExclude"
       @change="filterChanged"
       @error="message = $event.message"
     />

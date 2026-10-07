@@ -20,6 +20,7 @@ const form = ref({}),
   searchNames = ref([])
 let generation = 0
 let lastQuery
+let activeModel
 function fieldStyle(field) {
   return { '--search-field-width': searchWidth(field) }
 }
@@ -27,6 +28,11 @@ watch(
   () => [props.appModel, props.items, props.exclude],
   async () => {
     const current = ++generation
+    if (activeModel !== props.appModel) {
+      activeModel = props.appModel
+      form.value = {}
+      lastQuery = undefined
+    }
     try {
       const model = registry.get(props.appModel)
       const [options, metadata, config] = await Promise.all([
@@ -53,8 +59,6 @@ watch(
           return false
         }
       })
-      form.value = {}
-      lastQuery = undefined
     } catch (e) {
       emit('error', e)
     }

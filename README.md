@@ -49,6 +49,8 @@ demo 加载 Font Awesome 4 样式以显示原配置中的图标名称。
 
 ```js
 import { createApp } from 'vue'
+import ElementPlus from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { createHttp, createRegistry, createDjango } from 'vue3-django'
 import 'element-plus/dist/index.css'
 import 'vant/lib/index.css'
@@ -64,7 +66,7 @@ const registry = createRegistry({
     return load ? (await load()).default : {}
   },
 })
-createApp(App).use(createDjango({ registry })).mount('#app')
+createApp(App).use(ElementPlus, { locale: zhCn }).use(createDjango({ registry })).mount('#app')
 ```
 
 ```vue

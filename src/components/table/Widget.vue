@@ -3,6 +3,7 @@ import { computed, toRaw } from 'vue'
 import DOMPurify from 'dompurify'
 import { ElImage, ElAvatar, ElTag } from 'element-plus'
 import ForeignKey from '../widgets/ForeignKey.vue'
+import VideoCover from '../media/VideoCover.vue'
 import FormField from '../form/Field.vue'
 import { fieldValue, safeUrl, tableDate, tableDisplay } from '../../core/table.js'
 
@@ -15,7 +16,13 @@ const props = defineProps({
 const emit = defineEmits(['change'])
 const raw = computed(() => fieldValue(props.value, props.field.name))
 const display = computed(() => tableDisplay(props.field, props.value))
-const widget = computed(() => toRaw(props.field.cellWidget ?? props.field.widget))
+const widget = computed(() => {
+  const configured = toRaw(props.field.cellWidget ?? props.field.widget)
+  return typeof configured === 'string' &&
+    configured.replace(/[-_ ]/g, '').toLowerCase() === 'videocover'
+    ? VideoCover
+    : configured
+})
 const kind = computed(() => (typeof widget.value === 'string' ? widget.value.toLowerCase() : ''))
 const context = computed(() => ({ row: props.value, ...props.context }))
 const html = computed(() =>
@@ -77,16 +84,18 @@ const jsonItems = computed(() =>
     :class="['vd-table-boolean', { 'is-true': raw }]"
     :aria-label="raw ? '是' : '否'"
     :title="raw ? '是' : '否'"
-    >{{ raw ? '✓' : '—' }}</span
   >
+    {{ raw ? '✓' : '—' }}
+  </span>
   <span
     v-else-if="
       ['date2now', 'timestamp', 'date', 'datetime'].includes(kind) ||
       (!widget && !field.formatter && ['date', 'datetime'].includes(field.type))
     "
     :title="date"
-    >{{ date }}</span
   >
+    {{ date }}
+  </span>
   <ElAvatar
     v-else-if="kind === 'avatar'"
     :src="images[0]"
@@ -131,8 +140,9 @@ const jsonItems = computed(() =>
     "
     target="_blank"
     rel="noopener noreferrer"
-    >{{ display }}</a
   >
+    {{ display }}
+  </a>
   <dl
     v-else-if="kind === 'jsondisplay' && typeof raw === 'object'"
     class="vd-table-json"
@@ -155,14 +165,16 @@ const jsonItems = computed(() =>
   <ElTag
     v-else-if="kind === 'colortext'"
     :style="{ backgroundColor: field.getColor?.(context) ?? field.color }"
-    >{{ display }}</ElTag
   >
+    {{ display }}
+  </ElTag>
   <span
     v-else
     class="vd-table-text"
     :title="kind === 'tooltipcell' ? String(display) : undefined"
-    >{{ display }}</span
   >
+    {{ display }}
+  </span>
 </template>
 
 <style scoped>

@@ -1,4 +1,6 @@
-import { createApp, reactive } from 'vue'
+import { createApp, h, reactive } from 'vue'
+import { ElConfigProvider } from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'element-plus/dist/index.css'
 import 'vant/lib/index.css'
 import 'font-awesome/css/font-awesome.css'
@@ -40,7 +42,9 @@ const router = createDjangoRouter({
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
-createApp(Root)
+createApp({
+  render: () => h(ElConfigProvider, { locale: zhCn }, { default: () => h(Root) }),
+})
   .use(createDjango({ registry, auth, apps, revisions: reactive({}) }))
   .use(router)
   .mount('#app')

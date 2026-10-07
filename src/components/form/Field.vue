@@ -6,6 +6,7 @@ import { displayValue } from '../../core/metadata.js'
 import ModelSelect from '../model/Select.vue'
 import ImageUpload from '../media/ImageUpload.vue'
 import FileUpload from '../media/FileUpload.vue'
+import VideoCover from '../media/VideoCover.vue'
 const props = defineProps({
   field: { type: Object, required: true },
   modelValue: null,
@@ -15,6 +16,12 @@ const emit = defineEmits(['update:modelValue', 'uploading', 'error'])
 const value = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
 const numberType = computed(() => ['integer', 'decimal', 'float'].includes(props.field.type))
 const widget = computed(() => toRaw(props.field.widget))
+const videoCover = computed(
+  () =>
+    widget.value === VideoCover ||
+    (typeof widget.value === 'string' &&
+      widget.value.replace(/[-_ ]/g, '').toLowerCase() === 'videocover'),
+)
 const uploadWidget = computed(() => {
   if (typeof widget.value !== 'string') return undefined
   const name = widget.value.replace(/[-_ ]/g, '').toLowerCase()
@@ -41,7 +48,12 @@ function mobileInput(v) {
 }
 </script>
 <template>
-  <span v-if="field.read_only">{{ displayValue(field, value) }}</span>
+  <VideoCover
+    v-if="videoCover"
+    :model-value="value"
+    :field="field"
+  />
+  <span v-else-if="field.read_only">{{ displayValue(field, value) }}</span>
   <component
     v-else-if="uploadWidget"
     :is="uploadWidget"

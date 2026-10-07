@@ -65,3 +65,32 @@ it('隐藏指向未注册模型的搜索字段，保留已注册的关联字段'
   expect(wrapper.text()).not.toContain('not found')
   wrapper.unmount()
 })
+
+it('刷新 exclude/字段配置保留输入和查询去重，切换模型才清空', async () => {
+  const model = {
+    loadOptions: async () => ({
+      actions: { SEARCH: { search_fields: ['名称'], filter_fields: ['name'] } },
+    }),
+    fields: async () => ({ name: { label: '名称', type: 'string', lookups: ['exact'] } }),
+    loadViewsConfig: async () => ({}),
+  }
+  const wrapper = mount(Search, {
+    props: { appModel: 'demo.project', exclude: {} },
+    global: { provide: { [DjangoKey]: { registry: { get: () => model } } } },
+  })
+  await flushPromises()
+  await wrapper.find('input[placeholder="请输入名称"]').setValue('项目')
+  const previous = wrapper.emitted('change').length
+  await wrapper.setProps({ exclude: {} })
+  await flushPromises()
+  expect(wrapper.find('input[placeholder="请输入名称"]').element.value).toBe('项目')
+  await wrapper.setProps({ items: ['name'] })
+  await flushPromises()
+  expect(wrapper.find('input[placeholder="请输入名称"]').element.value).toBe('项目')
+  await wrapper.find('form').trigger('submit')
+  expect(wrapper.emitted('change')).toHaveLength(previous)
+  await wrapper.setProps({ appModel: 'demo.task' })
+  await flushPromises()
+  expect(wrapper.find('input[placeholder="请输入名称"]').element.value).toBe('')
+  wrapper.unmount()
+})

@@ -1,5 +1,11 @@
 # 平台无关的媒体上传
 
+`VideoCover` 与原版一样用于展示已有封面，不截取视频帧，也不上传。
+表格传 value/modelValue 整行对象，按 field.name 读取 URL；表单或单独使用可传 URL 标量。
+可使用组件 widget 或字符串 `'VideoCover'`，支持 width/height（数字像素或 CSS 字符串）、
+lazy、fit 和图片预览；旧版 fit=true 映射为 contain，preview=false 禁用预览。
+空值显示“暂无封面”，加载失败有占位提示；预览挂载到 body，避免被表格/抽屉裁切。
+
 前端控件不感知 bucket/vendor，后端根据用途、租户及配置选择存储平台。
 当前实现为浏览器单次 PUT 或 POST 表单直传，可适配后端为 S3/OSS/COS 等生成的签名计划。
 不包含这些平台的 Django SDK 适配器，也不包含分片、断点续传或视频转码。
