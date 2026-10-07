@@ -1,20 +1,38 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, provide, ref } from 'vue'
 import { useRoute, RouterView, RouterLink } from 'vue-router'
 import { ElButton } from 'element-plus'
 import SideBar from './SideBar.vue'
 import ViewTabs from './ViewTabs.vue'
+import Drawer from './Drawer.vue'
+import Actions from './Actions.vue'
+import { DrawerKey } from '../../composables/drawer.js'
 const props = defineProps({
   menus: Object,
   title: { type: String, default: 'vue3-django' },
   user: Object,
+  actions: Array,
+  actionContext: [Object, Function],
+  actionMap: Object,
+  permissionFunction: Function,
+  loadDrawerView: Function,
 })
-defineEmits(['logout'])
+const emit = defineEmits(['logout', 'action-done', 'error'])
 const route = useRoute(),
   opened = ref(false),
   tabs = ref()
+const drawer = ref()
+const drawerApi = {
+  open: (options) => drawer.value.open(options),
+  close: () => drawer.value.close(),
+}
+provide(DrawerKey, drawerApi)
 const standalone = computed(() => route.meta.layout === 'main')
-defineExpose({ resetTabs: () => tabs.value?.resetTabs() })
+defineExpose({
+  resetTabs: () => tabs.value?.resetTabs(),
+  openDrawer: drawerApi.open,
+  closeDrawer: drawerApi.close,
+})
 </script>
 <template>
   <RouterView v-if="standalone" />
@@ -35,6 +53,16 @@ defineExpose({ resetTabs: () => tabs.value?.resetTabs() })
         >{{ title }}</RouterLink
       >
       <div class="layout-account">
+        <slot name="actions">
+          <Actions
+            :items="actions"
+            :context="actionContext"
+            :map="actionMap"
+            :permission-function="permissionFunction"
+            @done="(result, action) => emit('action-done', result, action)"
+            @error="emit('error', $event)"
+          />
+        </slot>
         <span>{{ user?.name || user?.username }}</span
         ><ElButton
           v-if="user"
@@ -67,6 +95,11 @@ defineExpose({ resetTabs: () => tabs.value?.resetTabs() })
       </section>
     </div>
   </div>
+  <Drawer
+    ref="drawer"
+    :load-view="loadDrawerView"
+    @error="emit('error', $event)"
+  />
 </template>
 <style scoped>
 .django-layout {

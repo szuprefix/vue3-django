@@ -1,11 +1,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { ElTable, ElTableColumn, ElInput, ElButton, ElPagination, ElAlert } from 'element-plus'
+import { ElTable, ElTableColumn, ElButton, ElPagination, ElAlert } from 'element-plus'
 import { Cell, CellGroup, Search, Button, Pagination, NoticeBar } from 'vant'
 import { useDjango } from '../../composables/context.js'
-import { displayValue, normalizeItems } from '../../core/metadata.js'
+import { normalizeItems } from '../../core/metadata.js'
 import ModelSearch from './Search.vue'
-import ForeignKey from '../widgets/ForeignKey.vue'
+import TableWidget from '../table/Widget.vue'
 const props = defineProps({
   appModel: { type: String, required: true },
   items: [Array, String],
@@ -15,7 +15,7 @@ const props = defineProps({
   rowActions: Array,
   dblClickAction: String,
 })
-const emit = defineEmits(['loaded', 'edit', 'create', 'error', 'row-dblclick'])
+const emit = defineEmits(['loaded', 'edit', 'create', 'error', 'row-dblclick', 'field-change'])
 const { registry, auth } = useDjango()
 const rows = ref([]),
   fields = ref([]),
@@ -196,12 +196,12 @@ defineExpose({ refresh: load, load })
               :row="row"
               :field="field"
             >
-              <ForeignKey
-                v-if="field.model || field.relateModel"
+              <TableWidget
                 :value="row"
                 :field="field"
+                mobile
+                @change="emit('field-change', { row, field, value: $event })"
               />
-              <span v-else>{{ displayValue(field, row[field.name]) }}</span>
             </slot>
           </template>
         </Cell>
@@ -238,21 +238,30 @@ defineExpose({ refresh: load, load })
           :key="field.name"
           :prop="field.name"
           :label="field.label || field.name"
-          min-width="120"
+          :width="field.width"
+          :min-width="field.minWidth ?? field['min-width'] ?? 120"
+          :align="
+            field.align ??
+            (['integer', 'decimal', 'float', 'number', 'percent'].includes(field.type)
+              ? 'right'
+              : 'left')
+          "
+          :fixed="field.fixed"
+          :show-overflow-tooltip="field.showOverflowTooltip"
         >
-          <template #default="{ row }"
+          <template #default="{ row, $index }"
             ><slot
               :name="`column-${field.name}`"
               :row="row"
               :field="field"
-              ><ForeignKey
-                v-if="field.model || field.relateModel"
+              :context="{ row, $index }"
+              ><TableWidget
                 :value="row"
                 :field="field"
-              />
-              <span v-else>{{ displayValue(field, row[field.name]) }}</span></slot
-            ></template
-          >
+                :context="{ row, $index }"
+                @change="emit('field-change', { row, field, value: $event })"
+              /> </slot
+          ></template>
         </ElTableColumn>
         <ElTableColumn
           label="操作"

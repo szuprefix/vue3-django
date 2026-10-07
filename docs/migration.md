@@ -46,3 +46,80 @@ JWT 响应使用 `token.access`，Authorization 为 Bearer，cookie 名保留 `a
 路由默认需要登录，公开页面设置 `meta.loginRequired: false`。认证失败（401/403）回跳登录，网络与服务器错误保留原错误。
 `genModelRouters(apps, { list, create, edit })` 生成 `/<app>/<model>/`、`/<app>/<model>/add/` 和旧版编辑路径 `/<app>/<model>/:id/`；传单个组件仍可用，该组件通过 mode 区分页面。路由 props 提供 appModel/mode/id，编辑记录按路径各占一个 tab。模型动作、布局和权限菜单迁移尚未覆盖。
 真实演示启动：`VITE_REAL_API=true npm run dev -- --port 5173`，列表地址为 `/#/course/category/`，登录地址为 `/#/auth/login/`。
+
+## ModelTable 字段控件
+
+桌面和移动列表共用 `TableWidget`，`column-字段名` 插槽仍优先于默认渲染。
+自动支持 choices、布尔、数值千分位、percent、日期时间、外键、child.children 数组以及嵌套路径。
+日期时间当前显示本地完整时间，不复刻旧版 Date2Now 的相对时间文案。
+
+`list.items` 可以配置字符串名称或字段对象：
+
+```js
+list: {
+  items: [
+    'name',
+    { name: 'budget', type: 'decimal', align: 'right' },
+    { name: 'cover', widget: 'Picture', imageRoot: '/media/' },
+    { name: 'detail', widget: 'JsonDisplay', items: ['name', 'status'] },
+    { name: 'name', formatter: (row, name, value) => value.toUpperCase() },
+  ],
+}
+```
+
+字符串 widget 支持 ForeignKey、TrueFlag、ChoicesDisplay、Date2Now、Timestamp、
+Picture/Image、Avatar、PictureGallery、Video、Html、JsonDisplay、ColorText、TooltipCell、Link/URL、Mobile、Email。
+对象 widget 使用 Vue 3 组件，接收整行 `value/modelValue`、`field`、`context: { row, $index }`。
+旧函数 widget 沿用 `(row, field)` 返回 HTML，Html 和函数输出经过 DOMPurify 清理；链接限制为安全协议。
+formatter 沿用 `(row, fieldName, fieldValue)`，保留 0、false 和空字符串返回值。
+
+`useFormWidget: true` 复用 Form 的字段控件，编辑时发出
+`field-change: { row, field, value }`；不会自动修改记录或写入 API，宿主负责保存。
+支持 width、minWidth、align、fixed 和 showOverflowTooltip 列配置。
+旧版 subColumns、rows 和 headerWidget 尚未迁移，请继续使用自定义列插槽处理复杂单元格。
+
+## Layout Drawer 与 Actions
+
+`Layout` 内置抽屉，页面组件使用 `useDrawer().open(options)` 或通过布局 ref 的
+`openDrawer(options)` 打开，`closeDrawer()` 关闭。独立使用 `Drawer` 时，其 ref 提供
+`open/onOpen/close`。不再依赖 Vue 2 的全局 bus `opendrawer`。
+
+```js
+const drawer = useDrawer()
+await drawer.open({
+  component: Editor,
+  context: { id: 1, title: '编辑记录', size: '50%' },
+  onDone: (result) => refresh(result),
+})
+```
+
+抽屉内容组件 emit `done(result)` 后关闭并调用 onDone；取消关闭不调用 onDone。
+支持 title、size、direction、beforeClose；context 中 `$` 开头的键不传给内容组件。
+字符串组件由宿主提供 `loadDrawerView`，可用
+`createDrawerViewLoader(import.meta.glob('./views/**/*.vue'))` 创建加载器。
+异步加载失败向调用方抛出并 emit error，旧请求不会覆盖后打开的抽屉。
+
+`Actions` 保留原版 items/map/context/permissionFunction/size/trigger：
+字符串项从 map 取配置，嵌套数组项进入“更多”菜单，支持 label/title、icon、show(context)、
+permission、disabled、confirm/notice 和异步 loading。函数 `do(context)` 执行业务操作；
+字符串或组件 `do` 打开抽屉，`drawer` 作为抽屉 context 默认值。
+确认函数签名为 `(action, context)`，返回 false 取消；执行失败 emit error，完成 emit done(result, action)。
+防止同名操作重复执行。权限函数只控制前端显示，后端仍须检查权限。
+
+```js
+const actions = [
+  { name: 'refresh', label: '刷新', icon: 'refresh', do: () => refresh() },
+  [
+    {
+      name: 'edit',
+      label: '编辑',
+      do: 'course/course/Edit',
+      drawer: { title: '编辑', size: '50%' },
+    },
+  ],
+]
+```
+
+布局 props `actions/actionContext/actionMap/permissionFunction` 配置标题栏操作；
+`#actions` 插槽可替换操作区域。布局转发 `action-done(result, action)` 和 `error`。
+其他位置也可直接使用 `<Actions>`；抽屉操作需要位于 Layout 子树中。
