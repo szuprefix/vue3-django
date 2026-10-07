@@ -1,11 +1,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { ElTable, ElTableColumn, ElButton, ElPagination, ElAlert } from 'element-plus'
-import { Cell, CellGroup, Search, Button, Pagination, NoticeBar } from 'vant'
+import { ElButton, ElAlert } from 'element-plus'
+import { Search, Button, NoticeBar } from 'vant'
 import { useDjango } from '../../composables/context.js'
 import { normalizeItems } from '../../core/metadata.js'
 import ModelSearch from './Search.vue'
-import TableWidget from '../table/Widget.vue'
+import RemoteTable from '../table/RemoteTable.vue'
 import Drawer from '../layout/Drawer.vue'
 import ModelCreate from './Create.vue'
 const props = defineProps({
@@ -19,6 +19,8 @@ const props = defineProps({
   createMode: { type: String, default: 'drawer' },
   createDefaults: Object,
   createDrawerSize: { type: String, default: '66%' },
+  searchItems: Array,
+  showSearch: { type: Boolean, default: true },
 })
 const emit = defineEmits([
   'loaded',
@@ -31,12 +33,9 @@ const emit = defineEmits([
 ])
 const createDrawer = ref()
 const { registry, auth } = useDjango()
-const rows = ref([]),
-  fields = ref([]),
-  count = ref(0),
+const remote = ref()
+const fields = ref([]),
   search = ref(''),
-  page = ref(1),
-  loading = ref(false),
   message = ref('')
 const views = ref({})
 const queries = ref({})
@@ -66,51 +65,31 @@ async function create() {
     emit('error', error)
   }
 }
-async function load() {
+async function request(params) {
   const current = ++generation
-  loading.value = true
-  message.value = ''
-  try {
-    const model = registry.get(props.appModel)
-    const [metadata, config] = await Promise.all([model.fields(), model.loadViewsConfig()])
-    const result = await model.query({
-      ...queries.value,
-      search: search.value || undefined,
-      page: page.value,
-      page_size: props.pageSize,
-      ...config.list?.baseQueries,
-      ...props.baseQueries,
-    })
-    if (current !== generation) return
+  const model = registry.get(props.appModel)
+  const [metadata, config] = await Promise.all([model.fields(), model.loadViewsConfig()])
+  const result = await model.query({ ...params, ...config.list?.baseQueries, ...props.baseQueries })
+  if (current === generation) {
     views.value = config
     fields.value = normalizeItems(
       props.items ?? config.list?.items ?? config.list?.table ?? 'all',
       metadata,
     )
-    rows.value = Array.isArray(result) ? result : result.results
-    count.value = Array.isArray(result) ? result.length : result.count
-    if (!Array.isArray(rows.value) || !Number.isFinite(count.value))
-      throw new Error('首轮列表需要 DRF PageNumberPagination 的 count/results 或数组响应')
-    emit('loaded', result)
-  } catch (error) {
-    if (current === generation) {
-      rows.value = []
-      count.value = 0
-      message.value = error.message
-      emit('error', error)
-    }
-  } finally {
-    if (current === generation) loading.value = false
   }
+  return result
+}
+function load() {
+  message.value = ''
+  return remote.value?.refresh()
 }
 function onSearch() {
-  if (page.value !== 1) page.value = 1
-  else load()
+  return filterChanged({ ...queries.value, search: search.value || undefined })
 }
 function filterChanged(value) {
   queries.value = value
   search.value = value.search || ''
-  onSearch()
+  return remote.value?.search(value)
 }
 function onRowDblClick(row, column, event) {
   emit('row-dblclick', row, column, event)
@@ -163,18 +142,20 @@ const actions = computed(() =>
     })),
 )
 watch(
-  () => [props.appModel, props.baseQueries, props.pageSize],
+  () => props.appModel,
   () => {
-    page.value = 1
-    load()
+    generation++
+    queries.value = {}
+    search.value = ''
+    views.value = {}
+    fields.value = []
+    remote.value?.search({})
   },
-  { immediate: true, deep: true },
 )
-watch(page, load)
 defineExpose({ refresh: load, load })
 </script>
 <template>
-  <section :aria-busy="loading">
+  <section :aria-busy="remote?.loading">
     <Drawer
       ref="createDrawer"
       @error="emit('error', $event)"
@@ -186,25 +167,29 @@ defineExpose({ refresh: load, load })
         type="primary"
         size="small"
         @click="create"
-        >新增</Button
       >
+        新增
+      </Button>
       <ElButton
         v-else
         type="primary"
         @click="create"
-        >新增</ElButton
       >
+        新增
+      </ElButton>
     </div>
     <Search
-      v-if="mobile"
+      v-if="mobile && showSearch"
       v-model="search"
       placeholder="搜索记录"
       @search="onSearch"
       @clear="onSearch"
     />
     <ModelSearch
-      v-else
+      v-if="!mobile && showSearch"
       :app-model="appModel"
+      :items="searchItems"
+      :exclude="{ ...views.list?.baseQueries, ...baseQueries }"
       @change="filterChanged"
       @error="message = $event.message"
     />
@@ -218,118 +203,32 @@ defineExpose({ refresh: load, load })
       type="error"
       :closable="false"
     />
-    <p v-if="loading">加载中…</p>
-    <template v-else-if="mobile">
-      <p v-if="!rows.length && !message">暂无数据</p>
-      <CellGroup
-        v-for="row in rows"
-        :key="row[registry.getConfig(appModel).idField ?? 'id']"
-        inset
-        class="vd-card"
+    <RemoteTable
+      ref="remote"
+      :request="request"
+      :base-queries="baseQueries"
+      :page-size="pageSize"
+      :fields="fields"
+      :row-key="registry.getConfig(appModel).idField ?? 'id'"
+      :mobile="mobile"
+      :actions="actions"
+      show-edit
+      @loaded="emit('loaded', $event)"
+      @error="emit('error', $event)"
+      @edit="emit('edit', $event)"
+      @row-action="rowAction"
+      @row-dblclick="onRowDblClick"
+      @field-change="emit('field-change', $event)"
+    >
+      <template
+        v-for="(_, name) in $slots"
+        #[name]="scope"
       >
-        <Cell
-          v-for="field in fields"
-          :key="field.name"
-          :title="field.label || field.name"
-        >
-          <template #value>
-            <slot
-              :name="`column-${field.name}`"
-              :row="row"
-              :field="field"
-            >
-              <TableWidget
-                :value="row"
-                :field="field"
-                mobile
-                @change="emit('field-change', { row, field, value: $event })"
-              />
-            </slot>
-          </template>
-        </Cell>
-        <Cell
-          ><template #value
-            ><Button
-              size="small"
-              @click="emit('edit', row)"
-              >编辑</Button
-            ><Button
-              v-for="action in actions"
-              :key="action.name"
-              size="small"
-              @click="rowAction(action, row)"
-              >{{ action.label || action.name }}</Button
-            ></template
-          ></Cell
-        >
-      </CellGroup>
-      <Pagination
-        v-model="page"
-        :total-items="count"
-        :items-per-page="pageSize"
-      />
-    </template>
-    <template v-else>
-      <ElTable
-        :data="rows"
-        stripe
-        @row-dblclick="onRowDblClick"
-      >
-        <ElTableColumn
-          v-for="field in fields"
-          :key="field.name"
-          :prop="field.name"
-          :label="field.label || field.name"
-          :width="field.width"
-          :min-width="field.minWidth ?? field['min-width'] ?? 120"
-          :align="
-            field.align ??
-            (['integer', 'decimal', 'float', 'number', 'percent'].includes(field.type)
-              ? 'right'
-              : 'left')
-          "
-          :fixed="field.fixed"
-          :show-overflow-tooltip="field.showOverflowTooltip"
-        >
-          <template #default="{ row, $index }"
-            ><slot
-              :name="`column-${field.name}`"
-              :row="row"
-              :field="field"
-              :context="{ row, $index }"
-              ><TableWidget
-                :value="row"
-                :field="field"
-                :context="{ row, $index }"
-                @change="emit('field-change', { row, field, value: $event })"
-              /> </slot
-          ></template>
-        </ElTableColumn>
-        <ElTableColumn
-          label="操作"
-          min-width="140"
-          ><template #default="{ row }"
-            ><ElButton
-              link
-              type="primary"
-              @click="emit('edit', row)"
-              >编辑</ElButton
-            ><ElButton
-              v-for="action in actions"
-              :key="action.name"
-              link
-              @click="rowAction(action, row)"
-              >{{ action.label || action.name }}</ElButton
-            ></template
-          ></ElTableColumn
-        >
-      </ElTable>
-      <ElPagination
-        v-model:current-page="page"
-        :total="count"
-        :page-size="pageSize"
-        layout="total, prev, pager, next"
-      />
-    </template>
+        <slot
+          :name="name"
+          v-bind="scope || {}"
+        />
+      </template>
+    </RemoteTable>
   </section>
 </template>

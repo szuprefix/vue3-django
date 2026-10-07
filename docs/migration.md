@@ -49,6 +49,47 @@ JWT 响应使用 `token.access`，Authorization 为 Bearer，cookie 名保留 `a
 
 ## ModelTable 字段控件
 
+表格采用组合分层：ModelTable（模型元数据/权限/搜索/新建）→ RemoteTable（请求/分页/排序）→ Table（字段/行展示）。
+`useRemoteTable` 管理查询状态，防止迟到响应覆盖当前结果，并在组件销毁后忽略响应。
+ModelTable 保持原有 props、loaded/edit/create/created/field-change 事件和 load()/refresh()，列插槽逐层转发。
+不再通过继承或隐式 attrs 传递业务动作，通用表格不自动添加模型编辑按钮。
+
+```vue
+<RemoteTable
+  url="report/summary/"
+  :http="http"
+  :fields="[
+    { name: 'name', label: '名称' },
+    { name: 'total', type: 'integer', sortable: 'custom' },
+  ]"
+  :base-queries="{ status: 'active' }"
+  @loaded="onLoaded"
+/>
+```
+
+也可传 `request(queries)`，返回原始 count/results 对象或数组（不是 Axios response）。
+URL 模式通过 http.get 读取 response.data；不传 http 时使用已安装 Django context 的 registry.http。
+RemoteTable 暴露 refresh/load/search(queries)/changePage(page)/sort({ prop, order })；搜索和排序重置到第一页。
+通用 Table 接收 rows/fields/rowKey/actions/mobile/showEdit，不发起数据请求。
+列 sortable='custom' 启用远程 ordering；清除排序会移除 ordering 值。
+旧版导出、middleware、prepare 及全部 topActions 尚未迁入 RemoteTable，不应直接复制旧版配置假设兼容。
+
+ModelSearch 使用紧凑字段宽度并自动换行，不展示搜索/重置按钮。
+文本输入在 change（确认或失焦）时查询，清空立即查询；选择及范围控件值变化时查询。
+相同查询去重，Enter 可提交；ref 的 reset() 清空全部条件并查询。
+`search: { fieldName: { width: 240 } }` 可指定像素宽度，字符串如 `'16rem'` 也支持。
+选择控件按 label 长度 + 5rem、最小 8rem；普通/批量输入 10rem，关键词按搜索名称长度、最小 10rem。
+数字范围 16rem，日期范围 20rem，日期时间范围 26rem。字段不自动拉伸填满行，窄屏自然换行。
+仍使用 placeholder，不增加 item label。
+
+搜索字段按原版 type/model/choices/lookups 推导 widget；无法推导的字段不会自动展示。
+支持 boolean、radio、select、modelselect、input、array、numberrange、daterange，并按该顺序排列。
+`config.search.字段名.widget` 可显式覆盖；`hidden: true` 可隐藏字段。
+`ModelTable` 提供 `searchItems` 指定字段、`showSearch` 隐藏整个搜索区，并自动排除
+list.baseQueries 与 props.baseQueries 中固定的字段。独立 ModelSearch 使用 `exclude`（数组或对象）。
+范围控件生成 `字段__range` 的逗号分隔值，批量查询生成 `字段__in`。
+数字范围允许单边输入，未填边界沿用旧版 0/999999；查询保留 false 与 0。
+
 ModelForm 字段可以显式使用模型选择控件：
 
 ```js

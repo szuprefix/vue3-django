@@ -1,23 +1,30 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { ElInput, ElButton, ElSelect, ElOption } from 'element-plus'
+import {
+  ElInput,
+  ElSelect,
+  ElOption,
+  ElDatePicker,
+  ElInputNumber,
+  ElRadioGroup,
+  ElRadioButton,
+} from 'element-plus'
 import Field from '../form/Field.vue'
 import { useDjango } from '../../composables/context.js'
-import { normalizeItems } from '../../core/metadata.js'
-const props = defineProps({ appModel: String, items: Array })
+import { searchFields, searchQueries, searchWidth } from '../../core/search.js'
+const props = defineProps({ appModel: String, items: Array, exclude: [Array, Object] })
 const emit = defineEmits(['change', 'error'])
 const { registry } = useDjango()
 const form = ref({}),
   fields = ref([]),
   searchNames = ref([])
 let generation = 0
+let lastQuery
 function fieldStyle(field) {
-  const width =
-    field.width ?? `${Math.max(10, Math.min(20, (field.label || field.name).length + 5))}rem`
-  return { '--search-field-width': typeof width === 'number' ? `${width}px` : width }
+  return { '--search-field-width': searchWidth(field) }
 }
 watch(
-  () => [props.appModel, props.items],
+  () => [props.appModel, props.items, props.exclude],
   async () => {
     const current = ++generation
     try {
@@ -29,27 +36,25 @@ watch(
       ])
       if (current !== generation) return
       searchNames.value = options.actions?.SEARCH?.search_fields ?? []
-      fields.value = normalizeItems(
+      fields.value = searchFields(
         props.items ?? options.actions?.SEARCH?.filter_fields ?? [],
         metadata,
-      ).map((field) => {
-        const configured = { ...field, ...config.search?.[field.name] }
-        const selection =
-          configured.model ||
-          configured.relateModel ||
-          configured.choices ||
-          configured.type === 'boolean'
-        return {
-          ...configured,
-          placeholder:
-            configured.placeholder ??
-            `${selection ? '请选择' : '请输入'}${configured.label || configured.name}`,
-          read_only: false,
-          required: false,
-          multiple: false,
+        config.search,
+        props.exclude,
+      ).filter((field) => {
+        if (field.widget !== 'modelselect') return true
+        const relatedModel = field.appModel ?? field.relateModel ?? field.model
+        if (!relatedModel) return false
+        try {
+          registry.getConfig(relatedModel)
+          return true
+        } catch {
+          // An unregistered relation cannot offer usable search choices.
+          return false
         }
       })
       form.value = {}
+      lastQuery = undefined
     } catch (e) {
       emit('error', e)
     }
@@ -57,17 +62,27 @@ watch(
   { immediate: true, deep: true },
 )
 function submit() {
-  emit(
-    'change',
-    Object.fromEntries(
-      Object.entries(form.value).filter(([, value]) => value !== '' && value != null),
-    ),
-  )
+  const queries = searchQueries(form.value, fields.value)
+  const signature = JSON.stringify(queries)
+  if (signature === lastQuery) return
+  lastQuery = signature
+  emit('change', queries)
+}
+function changed(name, value) {
+  form.value[name] = value
+  submit()
+}
+function setRange(name, index, value) {
+  const range = [...(form.value[name] ?? [null, null])]
+  range[index] = value
+  form.value[name] = range
+  submit()
 }
 function reset() {
   form.value = {}
   submit()
 }
+defineExpose({ submit, reset })
 </script>
 <template>
   <form
@@ -77,12 +92,15 @@ function reset() {
     <div
       v-if="searchNames.length"
       class="vd-search-field vd-search-keyword"
+      :style="{ '--search-field-width': `${Math.max(10, searchNames.join('、').length + 5)}rem` }"
     >
       <ElInput
         v-model="form.search"
         clearable
         :placeholder="`搜索${searchNames.join('、')}`"
         aria-label="搜索记录"
+        @change="submit"
+        @clear="submit"
       />
     </div>
     <div
@@ -92,8 +110,9 @@ function reset() {
       :style="fieldStyle(field)"
     >
       <ElSelect
-        v-if="field.type === 'boolean'"
-        v-model="form[field.name]"
+        v-if="field.widget === 'boolean'"
+        :model-value="form[field.name]"
+        @update:model-value="changed(field.name, $event)"
         clearable
         :placeholder="field.placeholder"
         :aria-label="field.label || field.name"
@@ -107,25 +126,66 @@ function reset() {
           :value="false"
         />
       </ElSelect>
+      <ElRadioGroup
+        v-else-if="field.widget === 'radio'"
+        :model-value="form[field.name]"
+        @update:model-value="changed(field.name, $event)"
+        :aria-label="field.label || field.name"
+      >
+        <ElRadioButton
+          v-for="choice in field.choices"
+          :key="choice.value"
+          :value="choice.value"
+        >
+          {{ choice.display_name }}
+        </ElRadioButton>
+      </ElRadioGroup>
+      <ElDatePicker
+        v-else-if="field.widget === 'daterange'"
+        :model-value="form[field.name]"
+        @update:model-value="changed(field.name, $event)"
+        :type="field.type === 'datetime' ? 'datetimerange' : 'daterange'"
+        :value-format="
+          field.valueFormat ?? (field.type === 'datetime' ? 'YYYY-MM-DDTHH:mm:ss' : 'YYYY-MM-DD')
+        "
+        :start-placeholder="`最小${field.label || field.name}`"
+        :end-placeholder="`最大${field.label || field.name}`"
+      />
+      <div
+        v-else-if="field.widget === 'numberrange'"
+        class="vd-search-range"
+      >
+        <ElInputNumber
+          :model-value="form[field.name]?.[0]"
+          :controls="false"
+          :placeholder="`最小${field.label || field.name}`"
+          @update:model-value="setRange(field.name, 0, $event)"
+        />
+        <span>至</span>
+        <ElInputNumber
+          :model-value="form[field.name]?.[1]"
+          :controls="false"
+          :placeholder="`最大${field.label || field.name}`"
+          @update:model-value="setRange(field.name, 1, $event)"
+        />
+      </div>
+      <ElInput
+        v-else-if="field.widget === 'array' || field.widget === 'input'"
+        v-model="form[field.name]"
+        clearable
+        :placeholder="
+          field.widget === 'array' ? `批量查询${field.label || field.name}` : field.placeholder
+        "
+        :aria-label="field.label || field.name"
+        @change="submit"
+        @clear="submit"
+      />
       <Field
         v-else
         :field="field"
-        v-model="form[field.name]"
+        :model-value="form[field.name]"
+        @update:model-value="changed(field.name, $event)"
       />
-    </div>
-    <div class="vd-search-actions">
-      <ElButton
-        native-type="submit"
-        type="primary"
-      >
-        搜索
-      </ElButton>
-      <ElButton
-        native-type="button"
-        @click="reset"
-      >
-        重置
-      </ElButton>
     </div>
   </form>
 </template>
@@ -135,17 +195,14 @@ function reset() {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 .vd-search-field {
-  flex: 0 1 var(--search-field-width, 12rem);
-  width: var(--search-field-width, 12rem);
+  flex: 0 1 var(--search-field-width, 8rem);
+  width: var(--search-field-width, 8rem);
   min-width: 0;
   max-width: 100%;
-}
-.vd-search-keyword {
-  --search-field-width: 18rem;
 }
 .vd-search-field :deep(.el-input),
 .vd-search-field :deep(.el-select),
@@ -154,28 +211,9 @@ function reset() {
   width: 100%;
   min-width: 0;
 }
-.vd-search-actions {
+.vd-search-range {
   display: flex;
-  flex: 0 0 auto;
-  gap: 8px;
-}
-.vd-search-actions :deep(.el-button + .el-button) {
-  margin-left: 0;
-}
-@media (max-width: 600px) {
-  .vd-search-field {
-    flex: 1 1 calc(50% - 6px);
-  }
-  .vd-search-keyword {
-    flex-basis: 100%;
-  }
-  .vd-search-actions {
-    flex-basis: 100%;
-  }
-}
-@media (max-width: 360px) {
-  .vd-search-field {
-    flex-basis: 100%;
-  }
+  align-items: center;
+  gap: 6px;
 }
 </style>

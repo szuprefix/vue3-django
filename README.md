@@ -37,6 +37,7 @@ demo 加载 Font Awesome 4 样式以显示原配置中的图标名称。
 - `Layout`、`SideBar`、`ViewTabs`：菜单、独立编辑 path/tab、记录标题与图标。
 - `Form`：通用字段、校验、提交与字段错误；登录表单和 `ModelForm` 复用该组件。
 - `ModelTable`、`ModelForm`：元数据驱动列表与表单、新建抽屉、行双击编辑和行操作。
+- `Table`、`RemoteTable`、`useRemoteTable`：通用展示、远程请求与分页/排序状态，可用于非模型接口。
 - `ModelSearch`、`ModelSelect`、`ModelRelations`：搜索占位符、模型选择与关联视图。
 - `Drawer`、`Actions`：动态内容、完成回调、按钮/更多菜单、确认与异步状态。
 - `TableWidget`：choices、布尔、数字、日期、外键、图片、视频、JSON、HTML 和自定义渲染。
