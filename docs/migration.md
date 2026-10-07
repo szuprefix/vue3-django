@@ -70,6 +70,9 @@ ModelTable 保持原有 props、loaded/edit/create/created/field-change 事件�
 也可传 `request(queries)`，返回原始 count/results 对象或数组（不是 Axios response）。
 URL 模式通过 http.get 读取 response.data；不传 http 时使用已安装 Django context 的 registry.http。
 RemoteTable 暴露 refresh/load/search(queries)/changePage(page)/sort({ prop, order })；搜索和排序重置到第一页。
+桌面分页沿用原版 `total, sizes, prev, pager, next, jumper`，带背景按钮；默认 pageSizes 为 10/20/50/100，可配置。
+切换每页条数重置到第一页，加载时禁用桌面分页；分页与表格留出间距，窄屏自动换行。
+ModelTable 的 pageSize/pageSizes 传递给 RemoteTable，移动端继续使用 Vant 分页。
 通用 Table 接收 rows/fields/rowKey/actions/mobile/showEdit，不发起数据请求。
 列 sortable='custom' 启用远程 ordering；清除排序会移除 ordering 值。
 旧版导出、middleware、prepare 及全部 topActions 尚未迁入 RemoteTable，不应直接复制旧版配置假设兼容。

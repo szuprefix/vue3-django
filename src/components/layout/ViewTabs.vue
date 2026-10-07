@@ -94,8 +94,8 @@ defineExpose({ tabs, tabRemove, clearTabs, resetTabs })
       :name="tab.name"
       :closable="tabs.length > 1"
     >
-      <template #label
-        ><component
+      <template #label>
+        <component
           v-if="tab.icon && typeof tab.icon !== 'string'"
           :is="tab.icon"
           class="tab-icon"
@@ -111,22 +111,28 @@ defineExpose({ tabs, tabRemove, clearTabs, resetTabs })
           v-else-if="tab.icon"
           class="tab-icon"
           aria-hidden="true"
-          >{{ tab.icon }}</span
         >
-        <span :title="tab.title">{{
-          tab.title.length > 19 ? `${tab.title.slice(0, 16)}…` : tab.title
-        }}</span></template
-      >
+          {{ tab.icon }}
+        </span>
+        <span :title="tab.title">
+          {{ tab.title.length > 19 ? `${tab.title.slice(0, 16)}…` : tab.title }}
+        </span>
+      </template>
       <RouteTab :tab="tab" />
     </ElTabPane>
   </ElTabs>
 </template>
 <style scoped>
 .viewtabs {
-  margin: 0 24px;
+  margin: 0 8px;
+}
+.viewtabs :deep(.el-tabs__header) {
+  margin-bottom: 10px;
 }
 .viewtabs :deep(.el-tabs__item) {
   font-size: 0.8rem;
+  height: 36px;
+  padding: 0 16px;
 }
 .tab-icon {
   width: 1em;

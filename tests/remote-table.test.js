@@ -5,6 +5,28 @@ import { useRemoteTable } from '../src/composables/remote-table.js'
 import RemoteTable from '../src/components/table/RemoteTable.vue'
 import Table from '../src/components/table/Table.vue'
 
+it('分页沿用原版完整布局，切换每页条数重置页码且只发一次请求', async () => {
+  const request = vi.fn().mockResolvedValue({ count: 200, results: [] })
+  const wrapper = mount(RemoteTable, { props: { request, pageSize: 15 } })
+  await flushPromises()
+  const pager = wrapper.findComponent({ name: 'ElPagination' })
+  expect(pager.props('layout')).toBe('total, sizes, prev, pager, next, jumper')
+  expect(pager.props('background')).toBe(true)
+  expect(pager.props('pageSizes')).toContain(15)
+  pager.vm.$emit('update:current-page', 3)
+  await flushPromises()
+  const previous = request.mock.calls.length
+  pager.vm.$emit('update:page-size', 20)
+  pager.vm.$emit('update:current-page', 1)
+  await flushPromises()
+  expect(request).toHaveBeenCalledTimes(previous + 1)
+  expect(request.mock.calls.at(-1)[0]).toMatchObject({ page: 1, page_size: 20 })
+  await wrapper.setProps({ pageSize: 50 })
+  await flushPromises()
+  expect(request.mock.calls.at(-1)[0].page_size).toBe(50)
+  wrapper.unmount()
+})
+
 it('通用请求状态管理分页、搜索和排序，固定查询优先且清除排序有效', async () => {
   const request = vi.fn().mockResolvedValue({ count: 1, results: [{ id: 1 }] })
   const scope = effectScope()

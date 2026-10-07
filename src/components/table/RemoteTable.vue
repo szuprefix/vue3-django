@@ -1,5 +1,5 @@
 <script setup>
-import { watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElAlert, ElPagination } from 'element-plus'
 import { NoticeBar, Pagination } from 'vant'
 import Table from './Table.vue'
@@ -13,6 +13,7 @@ const props = defineProps({
   fields: { type: Array, default: () => [] },
   baseQueries: { type: Object, default: () => ({}) },
   pageSize: { type: Number, default: 10 },
+  pageSizes: { type: Array, default: () => [10, 20, 50, 100] },
   rowKey: { type: String, default: 'id' },
   mobile: Boolean,
   showEdit: Boolean,
@@ -29,6 +30,10 @@ const emit = defineEmits([
   'selection-change',
 ])
 const { registry } = useDjango()
+const currentPageSize = ref(props.pageSize)
+const sizeOptions = computed(() =>
+  [...new Set([...props.pageSizes, currentPageSize.value])].sort((a, b) => a - b),
+)
 const state = useRemoteTable({
   request: async (queries) => {
     if (props.request) return props.request(queries)
@@ -36,11 +41,26 @@ const state = useRemoteTable({
     return (await (props.http ?? registry.http).get(props.url, { params: queries })).data
   },
   baseQueries: () => props.baseQueries,
-  pageSize: () => props.pageSize,
+  pageSize: () => currentPageSize.value,
   onLoaded: (result) => emit('loaded', result),
   onError: (error) => emit('error', error),
 })
 const { rows, count, page, loading, error } = state
+function changePageSize(value) {
+  if (currentPageSize.value === value) return
+  currentPageSize.value = value
+  page.value = 1
+  return state.load()
+}
+function changePage(value) {
+  if (page.value !== value) return state.changePage(value)
+}
+watch(
+  () => props.pageSize,
+  (value) => {
+    currentPageSize.value = value
+  },
+)
 watch(
   () => [props.request, props.url, props.baseQueries, props.pageSize],
   () => {
@@ -90,22 +110,51 @@ defineExpose(state)
         />
       </template>
     </Table>
-    <template v-if="showPager && !loading">
+    <div
+      v-if="showPager"
+      class="vd-table-pagination"
+      :class="{ 'is-mobile': mobile }"
+    >
       <Pagination
         v-if="mobile"
         :model-value="page"
         :total-items="count"
-        :items-per-page="pageSize"
-        @update:model-value="state.changePage"
+        :items-per-page="currentPageSize"
+        @update:model-value="changePage"
       />
       <ElPagination
         v-else
         :current-page="page"
         :total="count"
-        :page-size="pageSize"
-        layout="total, prev, pager, next"
-        @update:current-page="state.changePage"
+        :page-size="currentPageSize"
+        :page-sizes="sizeOptions"
+        :disabled="loading"
+        background
+        :pager-count="5"
+        layout="total, sizes, prev, pager, next, jumper"
+        @update:current-page="changePage"
+        @update:page-size="changePageSize"
       />
-    </template>
+    </div>
   </section>
 </template>
+
+<style scoped>
+.vd-table-pagination {
+  padding: 10px 0 6px;
+}
+.vd-table-pagination :deep(.el-pagination) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  row-gap: 8px;
+}
+.vd-table-pagination.is-mobile {
+  padding: 12px 0;
+}
+@media (max-width: 600px) {
+  .vd-table-pagination :deep(.el-pagination__jump) {
+    margin-left: 0;
+  }
+}
+</style>

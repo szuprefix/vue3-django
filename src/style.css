@@ -1,22 +1,19 @@
 .vd-toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 16px 0;
+  gap: 8px;
+  margin: 0 0 8px;
 }
 .vd-toolbar h2 {
   flex: 1;
   margin: 0;
-  font-size: 20px;
+  font-size: 16px;
 }
 .vd-toolbar .el-input {
   max-width: 360px;
 }
 .vd-card {
   margin-bottom: 16px;
-}
-.el-pagination {
-  margin-top: 20px;
 }
 .el-alert {
   margin-bottom: 16px;

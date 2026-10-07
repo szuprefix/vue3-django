@@ -13,6 +13,7 @@ const props = defineProps({
   items: [Array, String],
   baseQueries: { type: Object, default: () => ({}) },
   pageSize: { type: Number, default: 10 },
+  pageSizes: Array,
   mobile: Boolean,
   rowActions: Array,
   dblClickAction: String,
@@ -208,6 +209,7 @@ defineExpose({ refresh: load, load })
       :request="request"
       :base-queries="baseQueries"
       :page-size="pageSize"
+      :page-sizes="pageSizes"
       :fields="fields"
       :row-key="registry.getConfig(appModel).idField ?? 'id'"
       :mobile="mobile"

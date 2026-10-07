@@ -46,12 +46,15 @@ defineExpose({
         aria-label="切换导航菜单"
         :aria-expanded="opened"
         @click="opened = !opened"
-        >菜单</ElButton
-      ><RouterLink
+      >
+        菜单
+      </ElButton>
+      <RouterLink
         to="/"
         class="layout-brand"
-        >{{ title }}</RouterLink
       >
+        {{ title }}
+      </RouterLink>
       <div class="layout-account">
         <slot name="actions">
           <Actions
@@ -63,12 +66,13 @@ defineExpose({
             @error="emit('error', $event)"
           />
         </slot>
-        <span>{{ user?.name || user?.username }}</span
-        ><ElButton
+        <span>{{ user?.name || user?.username }}</span>
+        <ElButton
           v-if="user"
           @click="$emit('logout')"
-          >退出登录</ElButton
         >
+          退出登录
+        </ElButton>
       </div>
     </header>
     <div class="layout-body">
@@ -104,20 +108,20 @@ defineExpose({
 <style scoped>
 .django-layout {
   min-height: 100vh;
-  background: #f4f7fa;
+  background: white;
   color: #253447;
 }
 .layout-header {
-  height: 64px;
-  padding: 0 24px;
+  height: 50px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   background: white;
   border-bottom: 1px solid #e5eaf0;
 }
 .layout-brand {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: inherit;
   text-decoration: none;
@@ -130,31 +134,30 @@ defineExpose({
 }
 .layout-body {
   display: flex;
-  min-height: calc(100vh - 65px);
+  min-height: calc(100vh - 51px);
 }
 .layout-sidebar {
-  width: 220px;
+  width: 190px;
   flex-shrink: 0;
   background: white;
   border-right: 1px solid #e5eaf0;
 }
 .layout-sidebar :deep(.el-menu) {
   border-right: 0;
+  --el-menu-item-height: 42px;
+  --el-menu-sub-item-height: 38px;
 }
 .layout-content {
   min-width: 0;
   flex: 1;
-  padding-top: 20px;
+  padding-top: 0;
 }
 .menu-toggle,
 .menu-backdrop {
   display: none;
 }
-.layout-content :deep(main) {
-  margin: 24px auto;
-}
 .layout-content :deep(.viewtabs) {
-  margin: 0 20px;
+  margin: 0 8px;
 }
 @media (max-width: 768px) {
   .menu-toggle {
@@ -172,7 +175,7 @@ defineExpose({
   .layout-sidebar.opened {
     display: block;
     position: fixed;
-    top: 65px;
+    top: 51px;
     bottom: 0;
     left: 0;
     z-index: 21;
@@ -181,7 +184,7 @@ defineExpose({
   .menu-backdrop {
     display: block;
     position: fixed;
-    inset: 65px 0 0;
+    inset: 51px 0 0;
     background: #0006;
     border: 0;
     z-index: 20;

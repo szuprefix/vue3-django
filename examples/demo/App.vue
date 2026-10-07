@@ -39,7 +39,7 @@ watch(
 )
 </script>
 <template>
-  <main>
+  <main class="demo-model-page">
     <!--    <header>-->
     <!--      <div>-->
     <!--        <span class="brand">vue3-django</span>-->
@@ -82,82 +82,47 @@ watch(
         />
       </template>
     </article>
-    <footer>OPTIONS 元数据 → 模型注册 → 配置覆盖 → 桌面 / 移动组件</footer>
   </main>
 </template>
 <style>
 body {
   margin: 0;
-  background: #f4f7fa;
+  background: white;
   color: #253447;
   font-family:
     system-ui,
     -apple-system,
     sans-serif;
 }
-main {
-  max-width: 1120px;
-  margin: 40px auto;
-  padding: 0 24px;
-}
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-}
-.brand {
-  font-size: 30px;
-  font-weight: 700;
-  letter-spacing: -1px;
-}
-header p,
-footer {
-  color: #64748b;
-  font-size: 14px;
-}
-aside {
-  margin: 24px 0;
-  padding: 12px 16px;
-  border-left: 3px solid #409eff;
-  background: #eaf3ff;
-  font-size: 13px;
-  color: #426181;
+</style>
+
+<style scoped>
+.demo-model-page {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 4px 12px;
 }
 article {
   background: white;
-  border: 1px solid #e5eaf0;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 8px 30px #25344705;
+  padding: 0;
 }
 article.mobile {
   max-width: 430px;
   margin: auto;
-  padding: 16px;
+  padding: 8px;
   background: #f7f8fa;
 }
-footer {
-  text-align: center;
-  margin: 28px 0;
+h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
 }
-.popup-title {
-  font-size: 18px;
-  margin: 0 20px 20px;
+article > .el-button {
+  margin-bottom: 12px;
 }
 @media (max-width: 600px) {
-  main {
-    margin: 24px auto;
-    padding: 0 12px;
-  }
-  header {
-    align-items: flex-start;
-  }
-  .brand {
-    font-size: 24px;
-  }
-  article {
-    padding: 12px;
+  .demo-model-page {
+    padding: 0 0 8px;
   }
 }
 </style>

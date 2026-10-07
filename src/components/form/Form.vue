@@ -41,6 +41,12 @@ const formItems = computed(() =>
   ),
 )
 const rules = computed(() => getItemRules(formItems.value))
+const uploadingFields = ref({})
+const uploading = computed(() => Object.values(uploadingFields.value).some(Boolean))
+function uploadError(name, error) {
+  errors.value[name] = error.message
+  emit('error', error)
+}
 watch(
   () => props.modelValue ?? props.value,
   (value) => {
@@ -58,7 +64,7 @@ function update(name, value) {
   publish()
 }
 async function onSubmit() {
-  if (loading.value || props.disabled) return
+  if (loading.value || props.disabled || uploading.value) return
   errors.value = {}
   try {
     for (const field of formItems.value) {
@@ -120,7 +126,7 @@ async function onSubmit() {
     loading.value = false
   }
 }
-const context = { onSubmit, formValue, formItems, loading, errors }
+const context = { onSubmit, formValue, formItems, loading, errors, uploading }
 defineExpose({ ...context, submit: onSubmit })
 </script>
 
@@ -159,6 +165,8 @@ defineExpose({ ...context, submit: onSubmit })
               :model-value="formValue[field.name]"
               mobile
               @update:model-value="update(field.name, $event)"
+              @uploading="uploadingFields[field.name] = $event"
+              @error="uploadError(field.name, $event)"
             />
           </slot>
         </template>
@@ -171,24 +179,26 @@ defineExpose({ ...context, submit: onSubmit })
       :loading="loading"
       :saving="loading"
     >
-      <template v-if="actions"
-        ><VanButton
+      <template v-if="actions">
+        <VanButton
           v-for="action in actions"
           :key="action.name"
-          :disabled="loading || disabled"
+          :disabled="loading || disabled || uploading"
           @click="action.name === 'submit' ? onSubmit() : action.do?.(context)"
-          >{{ action.label || action.name }}</VanButton
-        ></template
-      >
+        >
+          {{ action.label || action.name }}
+        </VanButton>
+      </template>
       <VanButton
         v-else
         block
         type="primary"
         native-type="submit"
         :loading="loading"
-        :disabled="disabled"
-        >{{ submitName }}</VanButton
+        :disabled="disabled || uploading"
       >
+        {{ submitName }}
+      </VanButton>
     </slot>
     <slot name="footer" />
   </VanForm>
@@ -243,6 +253,8 @@ defineExpose({ ...context, submit: onSubmit })
                 :model-value="formValue[field.name]"
                 :mobile="mobile"
                 @update:model-value="update(field.name, $event)"
+                @uploading="uploadingFields[field.name] = $event"
+                @error="uploadError(field.name, $event)"
               />
             </slot>
           </ElFormItem>
@@ -251,34 +263,37 @@ defineExpose({ ...context, submit: onSubmit })
       <ElCol
         v-if="submitName"
         :span="24"
-        ><ElFormItem>
+      >
+        <ElFormItem>
           <slot
             name="submit"
             :submit="onSubmit"
             :loading="loading"
             :saving="loading"
           >
-            <template v-if="actions"
-              ><ElButton
+            <template v-if="actions">
+              <ElButton
                 v-for="action in actions"
                 :key="action.name"
                 :type="action.type"
-                :disabled="loading || disabled"
+                :disabled="loading || disabled || uploading"
                 @click="action.name === 'submit' ? onSubmit() : action.do?.(context)"
-                >{{ action.label || action.name }}</ElButton
-              ></template
-            >
+              >
+                {{ action.label || action.name }}
+              </ElButton>
+            </template>
             <ElButton
               v-else
               type="primary"
               native-type="submit"
               :loading="loading"
-              :disabled="disabled"
-              >{{ submitName }}</ElButton
+              :disabled="disabled || uploading"
             >
+              {{ submitName }}
+            </ElButton>
           </slot>
-        </ElFormItem></ElCol
-      >
+        </ElFormItem>
+      </ElCol>
       <slot name="footer" />
     </ElRow>
   </ElForm>

@@ -195,8 +195,8 @@ defineExpose({ submit, reset })
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 .vd-search-field {
   flex: 0 1 var(--search-field-width, 8rem);
@@ -214,6 +214,6 @@ defineExpose({ submit, reset })
 .vd-search-range {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 </style>

@@ -4,15 +4,26 @@ import { ElInput, ElInputNumber, ElSwitch, ElSelect, ElOption, ElDatePicker } fr
 import { Field as VanField, Switch as VanSwitch } from 'vant'
 import { displayValue } from '../../core/metadata.js'
 import ModelSelect from '../model/Select.vue'
+import ImageUpload from '../media/ImageUpload.vue'
+import FileUpload from '../media/FileUpload.vue'
 const props = defineProps({
   field: { type: Object, required: true },
   modelValue: null,
   mobile: Boolean,
 })
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'uploading', 'error'])
 const value = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
 const numberType = computed(() => ['integer', 'decimal', 'float'].includes(props.field.type))
 const widget = computed(() => toRaw(props.field.widget))
+const uploadWidget = computed(() => {
+  if (typeof widget.value !== 'string') return undefined
+  const name = widget.value.replace(/[-_ ]/g, '').toLowerCase()
+  return ['imageupload', 'imageinput'].includes(name)
+    ? ImageUpload
+    : ['fileupload', 'fileinput'].includes(name)
+      ? FileUpload
+      : undefined
+})
 const relatedModel = computed(
   () => props.field.appModel ?? props.field.relateModel ?? props.field.model,
 )
@@ -31,10 +42,19 @@ function mobileInput(v) {
 </script>
 <template>
   <span v-if="field.read_only">{{ displayValue(field, value) }}</span>
+  <component
+    v-else-if="uploadWidget"
+    :is="uploadWidget"
+    v-model="value"
+    :field="field"
+    @uploading="emit('uploading', $event)"
+    @error="emit('error', $event)"
+  />
   <ModelSelect
     v-else-if="modelSelect"
     v-model="value"
     :app-model="relatedModel"
+    @error="emit('error', $event)"
     :field="field"
   />
   <component
@@ -43,6 +63,8 @@ function mobileInput(v) {
     v-model="value"
     :field="field"
     :app-model="relatedModel"
+    @uploading="emit('uploading', $event)"
+    @error="emit('error', $event)"
   />
   <template v-else-if="mobile">
     <VanSwitch
