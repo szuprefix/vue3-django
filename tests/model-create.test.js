@@ -31,7 +31,7 @@ function setup(props = {}) {
           registry: { get: () => model, getConfig: () => ({ verbose_name: '项目' }) },
         },
       },
-      stubs: { Drawer: drawer, ModelSearch: true, ElTable: true, ElPagination: true },
+      stubs: { Drawer: drawer, ModelSearch: true, ElPagination: true },
     },
   })
   return { wrapper, open, query }
@@ -40,7 +40,11 @@ function setup(props = {}) {
 it('列表新增打开抽屉并传默认值，保存后刷新且不触发编辑', async () => {
   const { wrapper, open, query } = setup()
   await flushPromises()
-  await wrapper.find('button').trigger('click')
+  await wrapper
+    .findAll('button')
+    .find((button) => button.text().includes('新增'))
+    .trigger('click')
+  await flushPromises()
   const options = open.mock.calls[0][0]
   expect(options.title).toBe('创建项目')
   expect(options.size).toBe('66%')
@@ -56,7 +60,11 @@ it('列表新增打开抽屉并传默认值，保存后刷新且不触发编辑'
 it('event 模式保留宿主新建处理，不同时打开内置抽屉', async () => {
   const { wrapper, open } = setup({ createMode: 'event' })
   await flushPromises()
-  await wrapper.find('button').trigger('click')
+  await wrapper
+    .findAll('button')
+    .find((button) => button.text().includes('新增'))
+    .trigger('click')
+  await flushPromises()
   expect(wrapper.emitted('create')).toHaveLength(1)
   expect(open).not.toHaveBeenCalled()
   wrapper.unmount()

@@ -171,11 +171,13 @@ defineExpose({ refresh: load, relations })
             v-if="item.multipleField"
             :disabled="saving"
             @click="beginAdd(item)"
-            >添加已有{{ item.label }}</ElButton
           >
+            添加已有{{ item.label }}
+          </ElButton>
           <ModelTable
             :key="`${item.key}:${generation}`"
             :app-model="item.name"
+            :parent="parent"
             :items="item.items"
             :base-queries="item.baseQueries"
             :mobile="mobile"
@@ -208,14 +210,15 @@ defineExpose({ refresh: load, relations })
         :app-model="adding.name"
         :field="{ multiple: true, label: adding.label }"
       />
-      <template #footer
-        ><ElButton
+      <template #footer>
+        <ElButton
           :loading="saving"
           :disabled="!selection.length"
           @click="addSelected"
-          >添加关联</ElButton
-        ></template
-      >
+        >
+          添加关联
+        </ElButton>
+      </template>
     </ElDialog>
     <ElDrawer
       :model-value="Boolean(creating)"

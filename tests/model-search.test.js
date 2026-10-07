@@ -1,6 +1,8 @@
 import { expect, it } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import Search from '../src/components/model/Search.vue'
+import ModelTable from '../src/components/model/Table.vue'
+import { vi } from 'vitest'
 import { DjangoKey } from '../src/composables/context.js'
 
 it('搜索无操作按钮，值变化自动查询，保留 placeholder、false 和清空', async () => {
@@ -92,5 +94,33 @@ it('刷新 exclude/字段配置保留输入和查询去重，切换模型才清�
   await wrapper.setProps({ appModel: 'demo.task' })
   await flushPromises()
   expect(wrapper.find('input[placeholder="请输入名称"]').element.value).toBe('')
+  wrapper.unmount()
+})
+
+it('ModelTable 查询和刷新后，搜索控件仍回显当前条件', async () => {
+  const query = vi.fn().mockResolvedValue({ count: 0, results: [] })
+  const model = {
+    loadOptions: async () => ({
+      actions: { SEARCH: { search_fields: ['名称'], filter_fields: ['name'] } },
+    }),
+    fields: async () => ({ name: { label: '名称', type: 'string', lookups: ['exact'] } }),
+    loadViewsConfig: async () => ({ list: { baseQueries: { active: true } } }),
+    query,
+  }
+  const wrapper = mount(ModelTable, {
+    props: { appModel: 'demo.project' },
+    global: {
+      provide: { [DjangoKey]: { registry: { get: () => model, getConfig: () => ({}) } } },
+      stubs: { ElTable: true, ElPagination: true, Drawer: true },
+    },
+  })
+  await flushPromises()
+  await wrapper.find('input[placeholder="请输入名称"]').setValue('项目')
+  await flushPromises()
+  expect(query.mock.calls.at(-1)[0]).toMatchObject({ name: '项目', active: true })
+  expect(wrapper.find('input[placeholder="请输入名称"]').element.value).toBe('项目')
+  await wrapper.vm.refresh()
+  await flushPromises()
+  expect(wrapper.find('input[placeholder="请输入名称"]').element.value).toBe('项目')
   wrapper.unmount()
 })

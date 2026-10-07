@@ -1,9 +1,12 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
-import { ElButton, ElAlert } from 'element-plus'
-import { Search, Button, NoticeBar } from 'vant'
+import { computed, inject, ref, watch } from 'vue'
+import { routerKey } from 'vue-router'
+import { useDrawer } from '../../composables/drawer.js'
+import { ElAlert } from 'element-plus'
+import { Search, NoticeBar } from 'vant'
 import { useDjango } from '../../composables/context.js'
 import { normalizeItems } from '../../core/metadata.js'
+import Actions from '../layout/Actions.vue'
 import ModelSearch from './Search.vue'
 import RemoteTable from '../table/RemoteTable.vue'
 import Drawer from '../layout/Drawer.vue'
@@ -16,6 +19,12 @@ const props = defineProps({
   pageSizes: Array,
   mobile: Boolean,
   rowActions: Array,
+  topActions: Array,
+  actionMap: Object,
+  avairableActions: Object,
+  permissionFunction: Function,
+  parent: Object,
+  selection: Boolean,
   dblClickAction: String,
   createMode: { type: String, default: 'drawer' },
   createDefaults: Object,
@@ -31,8 +40,11 @@ const emit = defineEmits([
   'error',
   'row-dblclick',
   'field-change',
+  'action-done',
 ])
 const createDrawer = ref()
+const drawer = useDrawer()
+const router = inject(routerKey, undefined)
 const { registry, auth } = useDjango()
 const remote = ref()
 const fields = ref([]),
@@ -93,56 +105,158 @@ function filterChanged(value) {
   search.value = value.search || ''
   return remote.value?.search(value)
 }
+function permitted(permission) {
+  if (props.permissionFunction) return props.permissionFunction(permission)
+  if (!auth || auth.state.user?.is_superuser) return true
+  const values = auth.state.user?.model_permissions?.[props.appModel] ?? []
+  return (Array.isArray(permission) ? permission : [permission]).every((name) =>
+    values.includes(name),
+  )
+}
+const modelConfig = computed(() => registry.getConfig(props.appModel))
+const remoteOptions = computed(() => views.value.list?.options?.remoteTable ?? {})
+const actionMap = computed(() => ({
+  refresh: { name: 'refresh', label: '刷新', icon: 'refresh', do: load },
+  create: { name: 'create', label: '新增', icon: 'plus', permission: 'create', do: create },
+  edit: {
+    name: 'edit',
+    label: '编辑',
+    icon: 'edit',
+    show: () => ['update', 'partial_update', 'retrieve'].some(permitted),
+    do: ({ row }) => emit('edit', row),
+  },
+  delete: {
+    name: 'delete',
+    label: '删除',
+    icon: 'trash',
+    permission: 'destroy',
+    type: 'danger',
+    confirm: true,
+    do: ({ row, model }) => model.destroy(row[model.config.idField ?? 'id']),
+  },
+  ...Object.fromEntries(
+    [...(modelConfig.value.actions ?? []), ...(modelConfig.value.itemActions ?? [])].map(
+      (action) => [action.name, { ...action, modelRoute: !action.do && !action.api }],
+    ),
+  ),
+  ...remoteOptions.value.table?.avairableActions,
+  ...remoteOptions.value.table?.actionMap,
+  ...remoteOptions.value.avairableActions,
+  ...remoteOptions.value.actionMap,
+  ...props.avairableActions,
+  ...props.actionMap,
+}))
+const topActions = computed(
+  () =>
+    props.topActions ??
+    views.value.list?.topActions ??
+    remoteOptions.value.table?.topActions ??
+    remoteOptions.value.topActions ?? [
+      'refresh',
+      'create',
+      ...(modelConfig.value.actions?.length
+        ? [modelConfig.value.actions.map((action) => action.name)]
+        : []),
+    ],
+)
+const rowActions = computed(() => {
+  const configured =
+    props.rowActions ??
+    views.value.list?.rowActions ??
+    remoteOptions.value.table?.rowActions ??
+    remoteOptions.value.rowActions
+  // Preserve the previous list-config convention: custom actions supplement edit.
+  if (configured)
+    return configured.length &&
+      !configured
+        .flat(Infinity)
+        .some((item) => (typeof item === 'string' ? item : item.name) === 'edit')
+      ? ['edit', ...configured]
+      : configured
+  return ['edit', ...(modelConfig.value.itemActions ?? []).map((action) => action.name), ['delete']]
+})
+function actionContext(scope = {}) {
+  return {
+    ...scope,
+    model: registry.get(props.appModel),
+    registry,
+    table: tableApi,
+    parent: props.parent,
+    queries: queries.value,
+  }
+}
+async function navigateAction(action, context) {
+  if (!router) throw new Error('模型动作页面需要配置 router')
+  const model = context.model
+  const path = `/${model.config.app}/${model.config.name}/${context.row ? encodeURIComponent(context.row[model.config.idField ?? 'id']) + '/' : ''}${action.name}/`
+  const matched = router.resolve(path).matched
+  if (!matched.length || matched.some((route) => route.path.includes(':pathMatch')))
+    throw new Error(`模型动作页面未配置：${path}`)
+  return router.push(path)
+}
+async function executeAction(action, context) {
+  let result
+  if (typeof action.do === 'function') result = await action.do(context)
+  else if (action.do || action.component) {
+    if (!drawer) throw new Error('抽屉动作需要 Layout')
+    await drawer.open({
+      component: action.do ?? action.component,
+      label: action.label,
+      context: { ...action.drawer, ...context },
+      onDone: async (value) => {
+        await action.onDone?.(value)
+        await load()
+        emit('action-done', value, action)
+      },
+    })
+    return
+  } else if (action.modelRoute) return navigateAction(action, context)
+  else
+    result = await context.model.doAction(
+      action.api ?? action.name,
+      action.context,
+      action.method ?? 'post',
+      context.row?.[context.model.config.idField ?? 'id'],
+    )
+  if (!['edit', 'create', 'refresh'].includes(action.name)) await load()
+  return result
+}
 function onRowDblClick(row, column, event) {
   emit('row-dblclick', row, column, event)
   const name = props.dblClickAction ?? views.value.list?.dblClickAction ?? 'edit'
-  if (!name) return
-  // Interactive controls handle their own navigation and actions.
-  if (event?.target?.closest?.('a, button, input, select, textarea, [role="button"]')) return
-  if (name === 'edit') emit('edit', row)
-  else {
-    const action = actions.value.find((item) => item.name === name)
-    if (action && (!action.show || action.show({ row }))) rowAction(action, row)
-  }
-}
-async function rowAction(action, row) {
-  try {
-    const model = registry.get(props.appModel)
-    if (typeof action.do === 'function') await action.do({ row, model, registry })
-    else if (action.api || action.name)
-      await model.doAction(
-        action.api || action.name,
-        action.context,
-        action.method ?? 'post',
-        row[model.config.idField ?? 'id'],
-      )
-    else throw new Error('首轮行操作需要 do 函数或 api 配置')
-    await load()
-  } catch (error) {
-    message.value = error.message
-    emit('error', error)
-  }
-}
-const actions = computed(() =>
-  (
-    props.rowActions ??
-    views.value.list?.rowActions ??
-    views.value.list?.options?.remoteTable?.rowActions ??
-    []
+  if (!name || event?.target?.closest?.('a, button, input, select, textarea, [role="button"]'))
+    return
+  const item = rowActions.value
+    .flat(Infinity)
+    .find((item) => (typeof item === 'string' ? item : item.name) === name)
+  if (!item) return
+  const action = { ...actionMap.value[name], ...(typeof item === 'object' ? item : {}), name }
+  const context = actionContext({ row })
+  if (
+    (action.permission && !permitted(action.permission)) ||
+    (action.show && !action.show(context))
   )
-    .filter((action) => {
-      if (!action.permission) return true
-      const permissions = auth?.state.user?.model_permissions?.[props.appModel]
-      return (
-        auth?.state.user?.is_superuser ||
-        (Array.isArray(permissions) && permissions.includes(action.permission))
-      )
-    })
-    .map((action) => ({
-      ...action,
-      label: action.label || action.title || action.verbose_name || action.name,
-    })),
-)
+    return
+  // Reuse confirmation/loading behavior, including destructive custom double-click actions.
+  doubleClickRow.value = row
+  commandActions.value?.handleCommand(action)
+}
+const commandActions = ref()
+const doubleClickRow = ref()
+const selectedRows = ref([])
+const tableApi = {
+  refresh: load,
+  load,
+  get parent() {
+    return props.parent
+  },
+  get selection() {
+    return selectedRows.value
+  },
+  get queries() {
+    return queries.value
+  },
+}
 watch(
   () => props.appModel,
   () => {
@@ -162,23 +276,16 @@ defineExpose({ refresh: load, load })
       ref="createDrawer"
       @error="emit('error', $event)"
     />
+    <Actions
+      ref="commandActions"
+      :items="[]"
+      :context="() => actionContext({ row: doubleClickRow })"
+      :execute="executeAction"
+      :permission-function="permitted"
+      @error="emit('error', $event)"
+    />
     <div class="vd-toolbar">
       <h2>{{ title }}</h2>
-      <Button
-        v-if="mobile"
-        type="primary"
-        size="small"
-        @click="create"
-      >
-        新增
-      </Button>
-      <ElButton
-        v-else
-        type="primary"
-        @click="create"
-      >
-        新增
-      </ElButton>
     </div>
     <Search
       v-if="mobile && showSearch"
@@ -214,12 +321,19 @@ defineExpose({ refresh: load, load })
       :fields="fields"
       :row-key="registry.getConfig(appModel).idField ?? 'id'"
       :mobile="mobile"
-      :actions="actions"
-      show-edit
+      :row-actions="rowActions"
+      :top-actions="topActions"
+      :action-map="actionMap"
+      :top-action-context="() => actionContext()"
+      :row-action-context="actionContext"
+      :permission-function="permitted"
+      :execute-action="executeAction"
+      :selection="selection"
+      @selection-change="selectedRows = $event"
+      @action-done="(result, action) => emit('action-done', result, action)"
       @loaded="emit('loaded', $event)"
       @error="emit('error', $event)"
       @edit="emit('edit', $event)"
-      @row-action="rowAction"
       @row-dblclick="onRowDblClick"
       @field-change="emit('field-change', $event)"
     >

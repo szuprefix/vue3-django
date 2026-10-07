@@ -30,7 +30,7 @@
 | 动态 import 模板路径    | 宿主 import.meta.glob 注入 loadViewsConfig     |
 | element-ui / vux        | element-plus / vant                            |
 
-不是所有原有 config 配置都已实现：batchActions、topActions、string do 路由及复杂字段见迭代计划。不要将旧目录的 src 全量复制后假设已经兼容。
+不是所有原有 config 配置都已实现：batchActions、导出及复杂字段仍需逐项迁移。不要将旧目录的 src 全量复制后假设已经兼容。
 
 ## 路由与登录迁移
 
@@ -75,7 +75,11 @@ RemoteTable 暴露 refresh/load/search(queries)/changePage(page)/sort({ prop, or
 ModelTable 的 pageSize/pageSizes 传递给 RemoteTable，移动端继续使用 Vant 分页。
 通用 Table 接收 rows/fields/rowKey/actions/mobile/showEdit，不发起数据请求。
 列 sortable='custom' 启用远程 ordering；清除排序会移除 ordering 值。
-旧版导出、middleware、prepare 及全部 topActions 尚未迁入 RemoteTable，不应直接复制旧版配置假设兼容。
+Table 与 RemoteTable 支持 topActions、rowActions、actionMap；ModelTable 也兼容旧拼写 avairableActions 和 list.options.remoteTable.table 配置。旧版导出、middleware、prepare 尚未迁入 RemoteTable。
+
+模型表默认表头操作为刷新、新增，行操作为编辑及删除（删除在更多菜单内）。配置数组支持动作名称、动作对象及嵌套数组（更多菜单），空数组隐藏对应操作。模型 config.actions 与 itemActions 分别加入表头和行操作。动作支持 title/label、icon、permission、show(context)、confirm、disabled 和异步 do(context)，上下文包含 row、model、table、parent、queries；table.selection 可用于宿主自定义选中记录操作。
+
+函数 do 执行成功后刷新列表；字符串 do 或 component 打开 Layout 抽屉，完成后刷新。未提供 do/api 的模型配置动作进入对应动作路由，需要宿主注册该路由。显式 api 动作调用模型 doAction；不会把缺少页面的动作静默改成后端写请求。导出需宿主通过 actionMap 自行提供 download 实现。
 
 ModelSearch 使用紧凑字段宽度并自动换行，不展示搜索/重置按钮。
 文本输入在 change（确认或失焦）时查询，清空立即查询；选择及范围控件值变化时查询。

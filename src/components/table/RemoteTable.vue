@@ -18,6 +18,15 @@ const props = defineProps({
   mobile: Boolean,
   showEdit: Boolean,
   actions: Array,
+  rowActions: Array,
+  topActions: { type: Array, default: () => ['refresh'] },
+  actionMap: Object,
+  avairableActions: Object,
+  topActionContext: [Object, Function],
+  rowActionContext: [Object, Function],
+  permissionFunction: Function,
+  executeAction: Function,
+  selection: Boolean,
   showPager: { type: Boolean, default: true },
 })
 const emit = defineEmits([
@@ -28,6 +37,7 @@ const emit = defineEmits([
   'row-dblclick',
   'field-change',
   'selection-change',
+  'action-done',
 ])
 const { registry } = useDjango()
 const currentPageSize = ref(props.pageSize)
@@ -46,6 +56,11 @@ const state = useRemoteTable({
   onError: (error) => emit('error', error),
 })
 const { rows, count, page, loading, error } = state
+const actionMap = computed(() => ({
+  refresh: { name: 'refresh', label: '刷新', icon: 'refresh', do: state.refresh },
+  ...props.avairableActions,
+  ...props.actionMap,
+}))
 function changePageSize(value) {
   if (currentPageSize.value === value) return
   currentPageSize.value = value
@@ -93,6 +108,16 @@ defineExpose(state)
       :mobile="mobile"
       :show-edit="showEdit"
       :actions="actions"
+      :row-actions="rowActions"
+      :top-actions="topActions"
+      :action-map="actionMap"
+      :top-action-context="topActionContext"
+      :row-action-context="rowActionContext"
+      :permission-function="permissionFunction"
+      :execute-action="executeAction"
+      :selection="selection"
+      @action-done="(result, action) => emit('action-done', result, action)"
+      @error="emit('error', $event)"
       @edit="emit('edit', $event)"
       @row-action="(action, row) => emit('row-action', action, row)"
       @row-dblclick="(row, column, event) => emit('row-dblclick', row, column, event)"

@@ -16,6 +16,8 @@ const props = defineProps({
   context: { type: [Object, Function], default: () => ({}) },
   map: { type: Object, default: () => ({}) },
   permissionFunction: Function,
+  execute: Function,
+  link: Boolean,
   size: { type: String, default: 'small' },
   trigger: { type: String, default: 'hover' },
 })
@@ -29,7 +31,7 @@ function normalize(item) {
   if (Array.isArray(item)) return item.flatMap((entry) => normalize(entry))
   const name = typeof item === 'string' ? item : item.name
   const action = { ...props.map[name], ...(typeof item === 'string' ? {} : item), name }
-  action.label = action.label ?? action.title ?? name
+  action.label = action.label ?? action.title ?? action.verbose_name ?? name
   return action
 }
 function allowed(action) {
@@ -63,9 +65,14 @@ async function handleCommand(action) {
       })
     }
     emit('command', action, actionContext)
-    if (typeof action.do === 'function') {
-      const result = await action.do(actionContext)
-      emit('done', result, action)
+    if (props.execute || typeof action.do === 'function') {
+      const result = props.execute
+        ? await props.execute(action, actionContext)
+        : await action.do(actionContext)
+      // Drawer completion is delivered by its onDone callback, not when it opens.
+      if (!(props.execute && (typeof action.do === 'string' || action.component))) {
+        emit('done', result, action)
+      }
     } else {
       if (!drawer) throw new Error('Actions 的抽屉操作需要放在 Layout 内')
       await drawer.open({
@@ -98,11 +105,14 @@ defineExpose({ handleCommand, loadingMap })
       :size="action.size ?? size"
       :type="action.type"
       :plain="action.plain"
+      :link="link || action.link"
       :disabled="action.disabled"
       :loading="loadingMap[action.name]"
       @click="handleCommand(action)"
-      ><Icon :icon="action.icon" />{{ action.label }}</ElButton
     >
+      <Icon :icon="action.icon" />
+      {{ action.label }}
+    </ElButton>
     <ElDropdown
       v-if="dropdown.length"
       :size="size"
@@ -112,8 +122,9 @@ defineExpose({ handleCommand, loadingMap })
       <ElButton
         :size="size"
         aria-label="更多操作"
-        >更多 ▾</ElButton
       >
+        更多 ▾
+      </ElButton>
       <template #dropdown>
         <ElDropdownMenu>
           <ElDropdownItem
@@ -123,7 +134,8 @@ defineExpose({ handleCommand, loadingMap })
             :disabled="action.disabled || loadingMap[action.name]"
             :divided="action.divided"
           >
-            <Icon :icon="action.icon" />{{ action.label }}
+            <Icon :icon="action.icon" />
+            {{ action.label }}
           </ElDropdownItem>
         </ElDropdownMenu>
       </template>
