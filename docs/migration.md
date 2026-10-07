@@ -80,6 +80,14 @@ formatter 沿用 `(row, fieldName, fieldValue)`，保留 0、false 和空字符�
 
 ## Layout Drawer 与 Actions
 
+ModelTable 的“新增”默认在本地 Drawer 展示 ModelForm，不再跳转新建 tab。
+桌面默认 `createDrawerSize="66%"`，移动端 100%；`createDefaults` 覆盖 baseQueries 的默认字段值。
+成功保存后关闭抽屉、emit `created`（与 ModelForm 的 form-posted payload 一致）并刷新当前列表。
+失败时保留表单和错误。`create` 事件仍表示点击新增，不表示保存成功。
+已有宿主通过 `@create` 打开自定义页面时，请设置 `createMode="event"`，避免同时打开内置抽屉。
+demo 编辑继续使用独立路由和 tab，直接访问已有 `/add/` 路由仍兼容。
+关联模型的新建抽屉保留关联默认值和多对多保存流程。
+
 `Layout` 内置抽屉，页面组件使用 `useDrawer().open(options)` 或通过布局 ref 的
 `openDrawer(options)` 打开，`closeDrawer()` 关闭。独立使用 `Drawer` 时，其 ref 提供
 `open/onOpen/close`。不再依赖 Vue 2 的全局 bus `opendrawer`。

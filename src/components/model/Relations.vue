@@ -1,6 +1,6 @@
 <script setup>
 import { ref, shallowRef, watch, markRaw, nextTick } from 'vue'
-import { ElTabs, ElTabPane, ElAlert, ElButton, ElDialog } from 'element-plus'
+import { ElTabs, ElTabPane, ElAlert, ElButton, ElDialog, ElDrawer } from 'element-plus'
 import ModelTable from './Table.vue'
 import ModelSelect from './Select.vue'
 import ModelForm from './Form.vue'
@@ -179,6 +179,7 @@ defineExpose({ refresh: load, relations })
             :items="item.items"
             :base-queries="item.baseQueries"
             :mobile="mobile"
+            create-mode="event"
             :row-actions="
               item.multipleField
                 ? [
@@ -216,9 +217,10 @@ defineExpose({ refresh: load, relations })
         ></template
       >
     </ElDialog>
-    <ElDialog
+    <ElDrawer
       :model-value="Boolean(creating)"
       :title="`新增${creating?.label || ''}`"
+      :size="mobile ? '100%' : '66%'"
       destroy-on-close
       @close="creating = undefined"
     >
@@ -229,6 +231,6 @@ defineExpose({ refresh: load, relations })
         :mobile="mobile"
         @form-posted="saved(creating, $event)"
       />
-    </ElDialog>
+    </ElDrawer>
   </section>
 </template>

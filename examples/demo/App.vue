@@ -40,33 +40,35 @@ watch(
 </script>
 <template>
   <main>
-    <header>
-      <div>
-        <span class="brand">vue3-django</span>
-        <p>继承 Django Admin 的自动化思想，让业务配置驱动界面。</p>
-      </div>
-      <ElButton @click="mobile = !mobile">{{ mobile ? '切换桌面端' : '切换移动端' }}</ElButton>
-    </header>
-    <aside v-if="realApi">真实 API 测试 · Django http://127.0.0.1:8000 · {{ appModel }}</aside>
-    <aside v-else>第一轮迭代 · 本地演示数据 · 刷新后重置 · 尚未连接实际后端</aside>
+    <!--    <header>-->
+    <!--      <div>-->
+    <!--        <span class="brand">vue3-django</span>-->
+    <!--        <p>继承 Django Admin 的自动化思想，让业务配置驱动界面。</p>-->
+    <!--      </div>-->
+    <!--      <ElButton @click="mobile = !mobile">{{ mobile ? '切换桌面端' : '切换移动端' }}</ElButton>-->
+    <!--    </header>-->
+    <!--    <aside v-if="realApi">真实 API 测试 · Django http://127.0.0.1:8000 · {{ appModel }}</aside>-->
+    <!--    <aside v-else>第一轮迭代 · 本地演示数据 · 刷新后重置 · 尚未连接实际后端</aside>-->
     <article :class="{ mobile }">
       <ModelTable
         v-if="mode === 'list'"
         ref="table"
         :app-model="appModel"
         :mobile="mobile"
-        @create="edit()"
+        @created="saved"
         @edit="edit"
       />
-      <template v-else
-        ><h2>{{ route.meta.title }}{{ mode === 'edit' ? ` #${id}` : '' }}</h2>
-        <ElButton @click="router.push(listPath)">返回列表</ElButton
-        ><ModelForm
+      <template v-else>
+        <h2>{{ route.meta.title }}{{ mode === 'edit' ? ` #${id}` : '' }}</h2>
+        <ElButton @click="router.push(listPath)">返回列表</ElButton>
+        <ModelForm
           :app-model="appModel"
           :id="mode === 'edit' ? id : undefined"
           :mobile="mobile"
           @update:model-value="object = $event"
-          @form-posted="saved" /><ModelRelations
+          @form-posted="saved"
+        />
+        <ModelRelations
           v-if="mode === 'edit' && object.id != null"
           :parent="{ appModel, data: { ...object, id } }"
           @parent-updated="object = $event"
@@ -77,7 +79,8 @@ watch(
               params: { id: $event.row.id },
             })
           "
-      /></template>
+        />
+      </template>
     </article>
     <footer>OPTIONS 元数据 → 模型注册 → 配置覆盖 → 桌面 / 移动组件</footer>
   </main>

@@ -39,6 +39,7 @@
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/test-utils": "2.4.6",
     "element-plus": "^2.11.0",
+    "font-awesome": "^4.7.0",
     "jsdom": "^26.1.0",
     "prettier": "^3.9.9",
     "vant": "^4.9.0",

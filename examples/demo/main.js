@@ -1,6 +1,7 @@
 import { createApp, reactive } from 'vue'
 import 'element-plus/dist/index.css'
 import 'vant/lib/index.css'
+import 'font-awesome/css/font-awesome.css'
 import {
   createHttp,
   createRegistry,

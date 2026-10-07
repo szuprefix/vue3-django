@@ -6,6 +6,8 @@ import { useDjango } from '../../composables/context.js'
 import { normalizeItems } from '../../core/metadata.js'
 import ModelSearch from './Search.vue'
 import TableWidget from '../table/Widget.vue'
+import Drawer from '../layout/Drawer.vue'
+import ModelCreate from './Create.vue'
 const props = defineProps({
   appModel: { type: String, required: true },
   items: [Array, String],
@@ -14,8 +16,20 @@ const props = defineProps({
   mobile: Boolean,
   rowActions: Array,
   dblClickAction: String,
+  createMode: { type: String, default: 'drawer' },
+  createDefaults: Object,
+  createDrawerSize: { type: String, default: '66%' },
 })
-const emit = defineEmits(['loaded', 'edit', 'create', 'error', 'row-dblclick', 'field-change'])
+const emit = defineEmits([
+  'loaded',
+  'edit',
+  'create',
+  'created',
+  'error',
+  'row-dblclick',
+  'field-change',
+])
+const createDrawer = ref()
 const { registry, auth } = useDjango()
 const rows = ref([]),
   fields = ref([]),
@@ -28,6 +42,30 @@ const views = ref({})
 const queries = ref({})
 const title = computed(() => registry.getConfig(props.appModel).verbose_name ?? props.appModel)
 let generation = 0
+async function create() {
+  emit('create')
+  if (props.createMode === 'event') return
+  try {
+    await createDrawer.value.open({
+      component: ModelCreate,
+      title: `创建${title.value}`,
+      size: props.mobile ? '100%' : props.createDrawerSize,
+      context: {
+        appModel: props.appModel,
+        defaults: { ...props.baseQueries, ...props.createDefaults },
+        mobile: props.mobile,
+        onError: (error) => emit('error', error),
+      },
+      onDone: async (event) => {
+        emit('created', event)
+        await load()
+      },
+    })
+  } catch (error) {
+    message.value = error.message
+    emit('error', error)
+  }
+}
 async function load() {
   const current = ++generation
   loading.value = true
@@ -137,19 +175,23 @@ defineExpose({ refresh: load, load })
 </script>
 <template>
   <section :aria-busy="loading">
+    <Drawer
+      ref="createDrawer"
+      @error="emit('error', $event)"
+    />
     <div class="vd-toolbar">
       <h2>{{ title }}</h2>
       <Button
         v-if="mobile"
         type="primary"
         size="small"
-        @click="emit('create')"
+        @click="create"
         >新增</Button
       >
       <ElButton
         v-else
         type="primary"
-        @click="emit('create')"
+        @click="create"
         >新增</ElButton
       >
     </div>
