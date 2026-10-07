@@ -1,6 +1,6 @@
 # vue3-django
 
-继承 `vue-django` 的理念：借鉴 Django Admin 的自动化思想，通过 DRF 元数据和少量业务配置实现前端极简定制。第一轮版本为 0.1.0，提供 Vue 3 + Element Plus + Vant 的模型 CRUD 基础链路。
+继承 `vue-django` 的理念：借鉴 Django Admin 的自动化思想，通过 DRF 元数据和少量业务配置实现前端极简定制。当前版本为 0.1.0，使用 Vue 3 + Element Plus + Vant，渐进迁移模型 CRUD、路由、登录、布局与字段控件。
 
 ## 运行
 
@@ -15,6 +15,31 @@ npm run build:demo
 ```
 
 开发入口是本地演示，使用 Axios adapter 模拟 OPTIONS、分页、POST、PATCH、行操作与 400 错误。数据只在内存保存，刷新重置；不需要访问旧项目或生产后端。切换移动端查看 Vant 表单与列表。输入已有项目名称可验证后端字段错误。
+
+访问 [本地预览](http://127.0.0.1:5173/)。默认 mock 模式提供 demo/crm；真实 API 模式需先启动 Django（默认 `http://127.0.0.1:8000`），再运行：
+
+```sh
+VITE_REAL_API=true npm run dev -- --port 5173
+```
+
+真实模式登录入口为 `/#/auth/login/`，默认列表为 `/#/course/category/`。
+Vite 将 `/api` 代理到 Django，包括用于读取元数据的 OPTIONS 请求。
+如果端口已占用，请以终端输出的地址为准。
+
+demo 的 `examples/demo/apps.js` 独立维护模型注册配置。真实模式已迁入原 dashboard 的
+14 个 app、39 个 model，保留名称、图标、hidden、title_field 和动作配置。
+这些配置不代表对应旧业务页面、动作和接口均已迁移或验收；无专用 config.js 的模型使用元数据默认视图。
+demo 加载 Font Awesome 4 样式以显示原配置中的图标名称。
+
+## 当前功能
+
+- `createDjangoRouter`、`genModelRouters` 与 `createAuth`：hash 路由、登录守卫和旧版认证接口。
+- `Layout`、`SideBar`、`ViewTabs`：菜单、独立编辑 path/tab、记录标题与图标。
+- `Form`：通用字段、校验、提交与字段错误；登录表单和 `ModelForm` 复用该组件。
+- `ModelTable`、`ModelForm`：元数据驱动列表与表单、新建抽屉、行双击编辑和行操作。
+- `ModelSearch`、`ModelSelect`、`ModelRelations`：搜索占位符、模型选择与关联视图。
+- `Drawer`、`Actions`：动态内容、完成回调、按钮/更多菜单、确认与异步状态。
+- `TableWidget`：choices、布尔、数字、日期、外键、图片、视频、JSON、HTML 和自定义渲染。
 
 ## 接入业务
 
@@ -55,7 +80,15 @@ import { ModelTable, ModelForm } from 'vue3-django'
 </template>
 ```
 
-`ModelForm` 不传 `id` 时新增，传入时编辑；`ModelTable` 发出 `create`/`edit`，由宿主决定路由或弹窗。两者传入 `mobile` 切换 Vant；表单支持 `v-model`、`defaults`、`items`，暴露 `load()`/`submit()`；列表暴露 `refresh()`。保存事件保留 `{ model, data, intent }`。
+`ModelForm` 不传 `id` 时新增，传入时编辑；两者传入 `mobile` 切换移动界面。
+表单支持 `v-model`、`defaults`、`items`，暴露 `load()`/`submit()`；列表暴露 `refresh()`。
+保存事件 `form-posted` 保留 `{ model, data, intent }`。
+
+`ModelTable` 的“新增”默认打开 Drawer，桌面宽度 66%，移动端全屏。
+`createDefaults` 覆盖 `baseQueries` 的新建默认值，`createDrawerSize` 调整桌面宽度。
+成功后关闭抽屉、发出 `created`（同 form-posted payload）并刷新列表；失败时保留表单。
+`create` 表示点击新增，旧宿主若通过该事件自行导航或打开弹窗，应设置 `create-mode="event"`。
+`edit` 仍由宿主处理；默认行双击也触发编辑，可用 `dblClickAction` 配置或空字符串禁用。
 
 业务 `src/views/crm/customer/config.js` 保留旧式声明：
 
@@ -76,7 +109,35 @@ export default {
 }
 ```
 
-字段模板来自 OPTIONS，`items` 中的对象覆盖元数据。`create`/`update` 优先于 `form`。自定义字段使用 `#field-name="{ field, value, update }"`，或将 Vue 组件传给字段 `widget`；桌面列表支持 `#column-name="{ row, field }"`。复杂关系、JSON、上传组件应先通过插槽在业务侧提供，后续逐步收敛。
+字段模板来自 OPTIONS，`items` 中的对象覆盖元数据。`create`/`update` 优先于 `form`。
+自定义字段使用 `#field-name="{ field, value, update }"`，或将 Vue 组件传给字段 `widget`；
+桌面和移动列表均支持 `#column-name="{ row, field }"`，插槽优先于内置字段渲染。
+
+列表 `formatter(row, fieldName, fieldValue)` 保留 0、false 和空字符串返回值。
+组件 widget 接收整行 value/modelValue、field 和 context；旧函数 widget 使用 `(row, field)` 返回 HTML。
+HTML 输出经过 DOMPurify 清理。`useFormWidget: true` 可在单元格使用表单字段控件，
+变化发出 `field-change: { row, field, value }`，不会自动保存到 API。
+
+`ModelRelations` 支持外键、多对多及通用关联配置、关联记录的新建抽屉，以及已有记录的添加/移出。
+特殊上传控件及未覆盖的复杂业务仍由宿主插槽或自定义组件实现。
+字段控件名称与关联配置示例见 [迁移指南](docs/migration.md)。
+
+## 路由、布局与抽屉
+
+宿主通过 `genModelRouters(apps, { list, create, edit })` 指定页面组件，生成列表、`add/` 和 `:id/` 路由；
+通过 `createDjangoRouter({ routes, auth })` 启用登录守卫，默认 hash 路由。
+公开页面设置 `meta.loginRequired: false`；`meta.layout: 'main'` 页面在 Layout 中独立展示。
+demo 的编辑页每条记录使用独立 path/tab，标题优先采用记录 `__str__`，并支持模型 icon。
+新建默认不打开 tab，已有 `add/` 页面路径继续兼容。
+
+`genMenusFromApps` 生成菜单，`Layout` 接入菜单、用户、退出事件及可选标题栏 actions。
+图标支持 emoji、Vue 组件及 Font Awesome 类名；宿主使用字体图标时需自行加载相应样式。
+
+布局子页面可使用 `useDrawer().open({ component, context, onDone })` 打开抽屉，
+内容组件 emit `done(result)` 后关闭并回调。字符串组件需要宿主配置 `loadDrawerView`，
+可用 `createDrawerViewLoader(import.meta.glob('./views/**/*.vue'))` 创建加载器。
+`Actions` 的函数 `do(context)` 执行业务操作，字符串/组件 `do` 打开抽屉；
+嵌套数组项进入“更多”菜单。详细配置见 [迁移指南](docs/migration.md)。
 
 ## DRF 约定
 
@@ -87,6 +148,13 @@ export default {
 - choice 保留真实 value 类型；布尔默认值延续旧版 true，可用 OPTIONS `default` 或 `defaults` 覆盖。
 - `400` 映射为字段错误和 `non_field_errors`，HTTP 错误保留 `code/msg`，网络错误 code=-1。
 - Session 认证保留 `csrftoken`/`X-CSRFToken`，后端需先设置 CSRF cookie；也支持 `http.setAuthToken(token)`，传空值清除 Token。
-- 跨域凭证、CORS 与 CSRF trusted origins 由业务环境配置；`createHttp` 可传 Axios 配置。框架不自动获取 CSRF cookie，不写认证信息到持久存储。
+- 跨域凭证、CORS 与 CSRF trusted origins 由业务环境配置；`createHttp` 可传 Axios 配置，不自动获取 CSRF cookie，也不持久保存 Token。
+- 可选 `createAuth` 沿用 `auth/user/login/`、`auth/user/current/`、`auth/user/logout/`；JWT 使用 `token.access` 和 Bearer 请求头，并通过 `access_token` cookie 保留 Token，也支持 Session。demo 登录页可记忆用户名，但不保存密码。
 
-这是渐进迁移的第一轮基础，不是旧组件的完整替代。范围、验收和缺口见 [迭代计划](docs/iterations.md)，业务迁移方式见 [迁移指南](docs/migration.md)。
+## 尚未覆盖
+
+这仍是渐进迁移版本，不是旧组件的完整替代。旧业务动作页面、批量操作和上传控件尚未完整迁移；
+复杂分组列（subColumns/rows/headerWidget）尚未支持；Date2Now 当前显示完整本地时间，未实现旧版相对时间文案。
+测试与构建通过不等于所有真实后端模型、权限和业务动作已经验收。
+
+历史迭代范围见 [迭代计划](docs/iterations.md)，当前接入约定与兼容差异见 [迁移指南](docs/migration.md)。

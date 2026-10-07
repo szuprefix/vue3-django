@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, toRaw } from 'vue'
 import { ElInput, ElInputNumber, ElSwitch, ElSelect, ElOption, ElDatePicker } from 'element-plus'
 import { Field as VanField, Switch as VanSwitch } from 'vant'
 import { displayValue } from '../../core/metadata.js'
@@ -12,23 +12,37 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 const value = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
 const numberType = computed(() => ['integer', 'decimal', 'float'].includes(props.field.type))
+const widget = computed(() => toRaw(props.field.widget))
+const relatedModel = computed(
+  () => props.field.appModel ?? props.field.relateModel ?? props.field.model,
+)
+const modelSelect = computed(
+  () =>
+    widget.value === ModelSelect ||
+    (typeof widget.value === 'string' &&
+      ['modelselect', 'relatedselect'].includes(
+        widget.value.replace(/[-_ ]/g, '').toLowerCase(),
+      )) ||
+    (!widget.value && Boolean(relatedModel.value)),
+)
 function mobileInput(v) {
   value.value = numberType.value ? (v === '' ? null : Number(v)) : v
 }
 </script>
 <template>
   <span v-if="field.read_only">{{ displayValue(field, value) }}</span>
-  <component
-    v-else-if="field.widget && typeof field.widget !== 'string'"
-    :is="field.widget"
+  <ModelSelect
+    v-else-if="modelSelect"
     v-model="value"
+    :app-model="relatedModel"
     :field="field"
   />
-  <ModelSelect
-    v-else-if="field.model || field.relateModel"
+  <component
+    v-else-if="field.widget && typeof field.widget !== 'string'"
+    :is="widget"
     v-model="value"
-    :app-model="field.relateModel || field.model"
     :field="field"
+    :app-model="relatedModel"
   />
   <template v-else-if="mobile">
     <VanSwitch

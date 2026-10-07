@@ -49,6 +49,27 @@ JWT 响应使用 `token.access`，Authorization 为 Bearer，cookie 名保留 `a
 
 ## ModelTable 字段控件
 
+ModelForm 字段可以显式使用模型选择控件：
+
+```js
+import { ModelSelect } from 'vue3-django'
+
+export default {
+  form: {
+    items: [
+      { name: 'category', widget: ModelSelect, model: 'course.category' },
+      { name: 'papers', widget: 'ModelSelect', appModel: 'exam.paper', multiple: true },
+    ],
+  },
+}
+```
+
+未指定 widget 时，model/relateModel/appModel 自动使用 ModelSelect；
+显式配置其它 widget 则优先使用自定义控件。
+支持 baseQueries、placeholder、disabled、multiple、multipleLimit、idField 和 selectOptionsFields。
+模型由 appModel、relateModel、model 依次解析。选中值为主键或主键数组，远程加载已选记录以回显。
+候选标签使用字段/模型 selectOptionsFields 或 **str**/title_field/name/title 的回退。
+
 桌面和移动列表共用 `TableWidget`，`column-字段名` 插槽仍优先于默认渲染。
 自动支持 choices、布尔、数值千分位、percent、日期时间、外键、child.children 数组以及嵌套路径。
 日期时间当前显示本地完整时间，不复刻旧版 Date2Now 的相对时间文案。
