@@ -176,8 +176,9 @@ defineExpose({ handleCommand, loadingMap })
   white-space: nowrap;
   vertical-align: middle;
 }
-.vd-actions.is-compact :deep(.el-button) {
-  padding: 5px 8px;
+.vd-actions.is-compact :deep(.el-button--small) {
+  height: 32px;
+  padding: 8px 12px;
 }
 .vd-actions.is-compact :deep(.el-button + .el-button) {
   margin-left: 0;
@@ -188,10 +189,18 @@ defineExpose({ handleCommand, loadingMap })
 .vd-actions-more {
   border: 0;
   background: transparent;
-  padding: 5px 6px !important;
+  min-width: 32px;
+  padding: 8px !important;
 }
 .vd-actions :deep(.vd-action-icon) {
-  width: 30px;
-  padding: 5px;
+  width: 36px;
+  padding: 8px;
+}
+.vd-actions :deep(.vd-action-icon .model-icon) {
+  margin-right: 0;
+  font-size: 14px;
+}
+.vd-actions :deep(.vd-action-icon.el-button--large) {
+  width: 40px;
 }
 </style>

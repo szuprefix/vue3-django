@@ -21,7 +21,7 @@ function mountForm(http, mobile = false) {
     global: { provide: { [DjangoKey]: { registry: registry(http) } } },
   })
 }
-describe('同一模型的桌面和移动表单', () => {
+describe('模型表单固定使用 PC 控件', () => {
   it('ModelForm 复用通用 Form 并透传字段与提交插槽', async () => {
     const http = {
       post: vi.fn().mockResolvedValue({ data: { id: 3, name: '插槽值', enabled: false } }),
@@ -45,7 +45,7 @@ describe('同一模型的桌面和移动表单', () => {
     wrapper.unmount()
   })
   for (const mobile of [false, true]) {
-    it(`${mobile ? 'Vant' : 'Element Plus'} 保存并回显 DRF 错误`, async () => {
+    it(`${mobile ? '旧 mobile 属性不切换控件' : '默认 PC 表单'} 保存并回显 DRF 错误`, async () => {
       const http = {
         post: vi
           .fn()
@@ -60,10 +60,10 @@ describe('同一模型的桌面和移动表单', () => {
       await wrapper.vm.submit()
       await flushPromises()
       // Element Plus delays error text by 100ms to avoid validation flicker.
-      if (!mobile) {
-        await new Promise((resolve) => setTimeout(resolve, 120))
-        await flushPromises()
-      }
+      await new Promise((resolve) => setTimeout(resolve, 120))
+      await flushPromises()
+      expect(wrapper.find('.el-form').exists()).toBe(true)
+      expect(wrapper.find('.van-form').exists()).toBe(false)
       expect(wrapper.text()).toContain('名称已存在')
       wrapper.vm.data.name = '新名称'
       await wrapper.vm.submit()

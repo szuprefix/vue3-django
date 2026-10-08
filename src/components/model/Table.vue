@@ -3,7 +3,6 @@ import { computed, inject, ref, watch } from 'vue'
 import { routerKey } from 'vue-router'
 import { useDrawer } from '../../composables/drawer.js'
 import { ElAlert } from 'element-plus'
-import { Search, NoticeBar } from 'vant'
 import { useDjango } from '../../composables/context.js'
 import { normalizeItems } from '../../core/metadata.js'
 import Actions from '../layout/Actions.vue'
@@ -17,7 +16,6 @@ const props = defineProps({
   baseQueries: { type: Object, default: () => ({}) },
   pageSize: { type: Number, default: 10 },
   pageSizes: Array,
-  mobile: Boolean,
   rowActions: Array,
   topActions: Array,
   actionMap: Object,
@@ -51,7 +49,6 @@ const router = inject(routerKey, undefined)
 const { registry, auth } = useDjango()
 const remote = ref()
 const fields = ref([]),
-  search = ref(''),
   message = ref('')
 const views = ref({})
 const searchExclude = computed(() => ({ ...views.value.list?.baseQueries, ...props.baseQueries }))
@@ -65,11 +62,10 @@ async function create() {
     await createDrawer.value.open({
       component: ModelCreate,
       title: `创建${title.value}`,
-      size: props.mobile ? '100%' : props.createDrawerSize,
+      size: props.createDrawerSize,
       context: {
         appModel: props.appModel,
         defaults: { ...props.baseQueries, ...props.createDefaults },
-        mobile: props.mobile,
         onError: (error) => emit('error', error),
       },
       onDone: async (event) => {
@@ -108,12 +104,8 @@ function load() {
   message.value = ''
   return remote.value?.refresh()
 }
-function onSearch() {
-  return filterChanged({ ...queries.value, search: search.value || undefined })
-}
 function filterChanged(value) {
   queries.value = value
-  search.value = value.search || ''
   return remote.value?.search(value)
 }
 function permitted(permission) {
@@ -273,7 +265,6 @@ watch(
   () => {
     generation++
     queries.value = {}
-    search.value = ''
     views.value = {}
     fields.value = []
     remote.value?.search({})
@@ -298,27 +289,16 @@ defineExpose({ refresh: load, load })
     <div class="vd-toolbar">
       <h2>{{ title }}</h2>
     </div>
-    <Search
-      v-if="mobile && showSearch"
-      v-model="search"
-      placeholder="搜索记录"
-      @search="onSearch"
-      @clear="onSearch"
-    />
     <ModelSearch
-      v-if="!mobile && showSearch"
+      v-if="showSearch"
       :app-model="appModel"
       :items="searchItems"
       :exclude="searchExclude"
       @change="filterChanged"
       @error="message = $event.message"
     />
-    <NoticeBar
-      v-if="message && mobile"
-      :text="message"
-    />
     <ElAlert
-      v-else-if="message"
+      v-if="message"
       :title="message"
       type="error"
       :closable="false"
@@ -331,7 +311,6 @@ defineExpose({ refresh: load, load })
       :page-sizes="pageSizes"
       :fields="fields"
       :row-key="registry.getConfig(appModel).idField ?? 'id'"
-      :mobile="mobile"
       :row-actions="rowActions"
       :top-actions="topActions"
       :action-map="actionMap"

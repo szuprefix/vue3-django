@@ -72,7 +72,7 @@ URL 模式通过 http.get 读取 response.data；不传 http 时使用已安装 
 RemoteTable 暴露 refresh/load/search(queries)/changePage(page)/sort({ prop, order })；搜索和排序重置到第一页。
 桌面分页沿用原版 `total, sizes, prev, pager, next, jumper`，带背景按钮；默认 pageSizes 为 10/20/50/100，可配置。
 切换每页条数重置到第一页，加载时禁用桌面分页；分页与表格留出间距，窄屏自动换行。
-ModelTable 的 pageSize/pageSizes 传递给 RemoteTable，移动端继续使用 Vant 分页。
+ModelTable 的 pageSize/pageSizes 传递给 RemoteTable，固定使用 Element Plus 分页。
 通用 Table 接收 rows/fields/rowKey/actions/mobile/showEdit，不发起数据请求。
 列 sortable='custom' 启用远程 ordering；清除排序会移除 ordering 值。
 Table 与 RemoteTable 支持 topActions、rowActions、actionMap；ModelTable 也兼容旧拼写 avairableActions 和 list.options.remoteTable.table 配置。旧版导出、middleware、prepare 尚未迁入 RemoteTable。
@@ -150,7 +150,7 @@ formatter 沿用 `(row, fieldName, fieldValue)`，保留 0、false 和空字符�
 ## Layout Drawer 与 Actions
 
 ModelTable 的“新增”默认在本地 Drawer 展示 ModelForm，不再跳转新建 tab。
-桌面默认 `createDrawerSize="66%"`，移动端 100%；`createDefaults` 覆盖 baseQueries 的默认字段值。
+模型列表默认 `createDrawerSize="66%"`，不再按 mobile 切换宽度；`createDefaults` 覆盖 baseQueries 的默认字段值。
 成功保存后关闭抽屉、emit `created`（与 ModelForm 的 form-posted payload 一致）并刷新当前列表。
 失败时保留表单和错误。`create` 事件仍表示点击新增，不表示保存成功。
 已有宿主通过 `@create` 打开自定义页面时，请设置 `createMode="event"`，避免同时打开内置抽屉。

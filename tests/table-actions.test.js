@@ -88,7 +88,7 @@ it('模型采用旧版嵌套 table 配置，执行后刷新，双击使用当前
     }),
   }
   const wrapper = mount(ModelTable, {
-    props: { appModel: 'demo.project', mobile: true, showSearch: false, dblClickAction: 'run' },
+    props: { appModel: 'demo.project', showSearch: false, dblClickAction: 'run' },
     global: {
       provide: { [DjangoKey]: { registry: { get: () => model, getConfig: () => ({}) } } },
       stubs: { Drawer: true },

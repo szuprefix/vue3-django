@@ -6,7 +6,7 @@ import ModelTable from '../../components/model/Table.vue'
 import { useDjango } from '../../composables/context.js'
 
 defineOptions({ inheritAttrs: false })
-const props = defineProps({ appModel: String, mobile: Boolean, gridComponent: [Object, Function] })
+const props = defineProps({ appModel: String, gridComponent: [Object, Function] })
 const emit = defineEmits(['loaded', 'created', 'edit', 'error'])
 const route = useRoute()
 const router = useRouter()
@@ -61,7 +61,6 @@ defineExpose({ refresh: () => table.value?.refresh() })
     ref="table"
     v-bind="{ ...config, ...$attrs }"
     :app-model="appModel"
-    :mobile="mobile || config.mode === 'grid'"
     @edit="edit"
     @created="emit('created', $event)"
     @loaded="emit('loaded', $event)"

@@ -14,7 +14,7 @@ npm run build
 npm run build:demo
 ```
 
-开发入口是本地演示，使用 Axios adapter 模拟 OPTIONS、分页、POST、PATCH、行操作与 400 错误。数据只在内存保存，刷新重置；不需要访问旧项目或生产后端。切换移动端查看 Vant 表单与列表。输入已有项目名称可验证后端字段错误。
+开发入口是 PC 模型界面的本地演示，使用 Axios adapter 模拟 OPTIONS、分页、POST、PATCH、行操作与 400 错误。数据只在内存保存，刷新重置；不需要访问旧项目或生产后端。输入已有项目名称可验证后端字段错误。
 
 访问 [本地预览](http://127.0.0.1:5173/)。默认 mock 模式提供 demo/crm；真实 API 模式需先启动 Django（默认 `http://127.0.0.1:8000`），再运行：
 
@@ -127,7 +127,7 @@ import { ModelTable, ModelForm } from 'vue3-django'
 </template>
 ```
 
-`ModelForm` 不传 `id` 时新增，传入时编辑；两者传入 `mobile` 切换移动界面。
+`ModelForm` 不传 `id` 时新增，传入时编辑。ModelTable、ModelForm 及默认模型页固定使用 PC 控件，不提供 mobile 模式；通用 Table、RemoteTable、Form 仍保留移动能力。
 表单支持 `v-model`、`defaults`、`items`，暴露 `load()`/`submit()`；列表暴露 `refresh()`。
 保存事件 `form-posted` 保留 `{ model, data, intent }`。
 
@@ -135,11 +135,11 @@ import { ModelTable, ModelForm } from 'vue3-django'
 `genModelRouters(apps, { modules: import.meta.glob('./views/**/*.vue') })` 通过 `import_or_use_template` 动态加载页面：优先使用宿主的 `views/<app>/<model>/list.vue`、`edit.vue`，不存在时使用内置模板；新增也复用 edit 模板。已有页面的加载错误不会回退。仍可传 `{ list, create, edit }` 覆盖页面组件。
 默认 App 只渲染 RouterView，布局由父路由的内置 Root 提供，模型页作为子路由渲染。demo 直接使用内置组件，无需自己的 App.vue、Root.vue、Login.vue；需要定制时通过 components 覆盖。
 列表页读取 `config.list` 并传递 `baseQueries` 等配置，处理编辑跳转及 revisions 刷新。
-`list.mode: 'grid'` 默认使用卡片列表；传 `gridComponent` 可接入专用网格组件（并非旧 ModelGrid 的全部功能）。
+`list.mode: 'grid'` 配合 `gridComponent` 接入宿主专用网格组件；未提供时仍使用 PC 表格（并非旧 ModelGrid 的全部功能）。
 编辑页在 ModelForm 的 `bottom` 插槽挂载 `panels`（兼容旧拼写 `pannels`）折叠面板及 relations；面板的 component 接收 parent 模型上下文。
-新增页在保存成功后替换为编辑路径，关联区只在已有主键时显示。内置页面需要安装 vue-router，页面 props 支持 appModel、id、mode、mobile。
+新增页在保存成功后替换为编辑路径，关联区只在已有主键时显示。内置页面需要安装 vue-router，页面 props 支持 appModel、id、mode。
 
-`ModelTable` 的“新增”默认打开 Drawer，桌面宽度 66%，移动端全屏。
+`ModelTable` 的“新增”默认打开 Drawer，宽度 66%。
 `createDefaults` 覆盖 `baseQueries` 的新建默认值，`createDrawerSize` 调整桌面宽度。
 成功后关闭抽屉、发出 `created`（同 form-posted payload）并刷新列表；失败时保留表单。
 `create` 表示点击新增，旧宿主若通过该事件自行导航或打开弹窗，应设置 `create-mode="event"`。

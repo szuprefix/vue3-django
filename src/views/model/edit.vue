@@ -7,7 +7,7 @@ import ModelRelations from '../../components/model/Relations.vue'
 import { useDjango } from '../../composables/context.js'
 
 defineOptions({ inheritAttrs: false })
-const props = defineProps({ appModel: String, id: [Number, String], mode: String, mobile: Boolean })
+const props = defineProps({ appModel: String, id: [Number, String], mode: String })
 const emit = defineEmits(['loaded', 'form-posted', 'error'])
 const slots = useSlots()
 const forwardedSlots = computed(() => Object.keys(slots).filter((name) => name !== 'bottom'))
@@ -88,7 +88,6 @@ defineExpose({ submit: () => form.value?.submit(), load: () => form.value?.load(
     v-bind="$attrs"
     :app-model="appModel"
     :id="id"
-    :mobile="mobile"
     @form-posted="posted"
     @loaded="emit('loaded', $event)"
     @error="emit('error', $event)"
@@ -123,7 +122,6 @@ defineExpose({ submit: () => form.value?.submit(), load: () => form.value?.load(
         </ElCollapse>
         <ModelRelations
           :parent="parent"
-          :mobile="mobile"
           @parent-updated="data = $event"
           @edit="editRelation"
           @error="emit('error', $event)"

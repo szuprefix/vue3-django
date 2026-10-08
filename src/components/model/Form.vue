@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, useSlots, watch } from 'vue'
 import { ElAlert } from 'element-plus'
-import { NoticeBar } from 'vant'
 import Form from '../form/Form.vue'
 import { useDjango } from '../../composables/context.js'
 import { emptyData, normalizeItems } from '../../core/metadata.js'
@@ -14,7 +13,6 @@ const props = defineProps({
   modelValue: Object,
   items: [Array, String],
   defaults: { type: Object, default: () => ({}) },
-  mobile: Boolean,
 })
 const emit = defineEmits(['update:modelValue', 'loaded', 'form-posted', 'error', 'beforesubmit'])
 const { registry } = useDjango()
@@ -97,12 +95,8 @@ defineExpose({ load, submit, data, errors })
   <div :aria-busy="loading || form?.loading">
     <p v-if="loading">正在加载字段…</p>
     <template v-else>
-      <NoticeBar
-        v-if="message && mobile"
-        :text="message"
-      />
       <ElAlert
-        v-else-if="message"
+        v-if="message"
         :title="message"
         type="error"
         :closable="false"
@@ -113,7 +107,7 @@ defineExpose({ load, submit, data, errors })
         :model-value="data"
         :items="fields"
         :submit="save"
-        :mobile="mobile"
+        :mobile="false"
         :disabled="Boolean(message) || !fields.length"
         :show-success="false"
         submit-name="保存"

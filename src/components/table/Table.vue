@@ -53,7 +53,7 @@ const actionWidth = computed(() => {
   if (props.actionsColumnWidth != null) return props.actionsColumnWidth
   const width = (items = []) =>
     items.reduce((total, item) => {
-      if (Array.isArray(item)) return total + (item.length ? 28 : 0)
+      if (Array.isArray(item)) return total + (item.length ? 36 : 0)
       const action = typeof item === 'string' ? resolvedActionMap.value[item] : item
       const label =
         action?.label ??
@@ -63,7 +63,7 @@ const actionWidth = computed(() => {
       return (
         total +
         (props.actionIconOnly && action?.icon && action.iconOnly !== false
-          ? 30
+          ? 36
           : Math.max(70, String(label ?? '').length * 14 + 36))
       )
     }, 16)

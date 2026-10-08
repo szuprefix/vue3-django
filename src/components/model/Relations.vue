@@ -9,7 +9,6 @@ import { resolveRelation, relationIds } from '../../core/relations.js'
 const props = defineProps({
   parent: { type: Object, required: true },
   items: Array,
-  mobile: Boolean,
 })
 const emit = defineEmits(['edit', 'create', 'error', 'parent-updated'])
 const { registry, loadRelationView, revisions } = useDjango()
@@ -164,7 +163,6 @@ defineExpose({ refresh: load, relations })
           v-bind="item"
           :parent="parent"
           :app-model="item.name"
-          :mobile="mobile"
         />
         <template v-else>
           <ElButton
@@ -180,7 +178,6 @@ defineExpose({ refresh: load, relations })
             :parent="parent"
             :items="item.items"
             :base-queries="item.baseQueries"
-            :mobile="mobile"
             create-mode="event"
             :row-actions="
               item.multipleField
@@ -223,7 +220,7 @@ defineExpose({ refresh: load, relations })
     <ElDrawer
       :model-value="Boolean(creating)"
       :title="`新增${creating?.label || ''}`"
-      :size="mobile ? '100%' : '66%'"
+      size="66%"
       destroy-on-close
       @close="creating = undefined"
     >
@@ -231,7 +228,6 @@ defineExpose({ refresh: load, relations })
         v-if="creating"
         :app-model="creating.name"
         :defaults="creating.defaults"
-        :mobile="mobile"
         @form-posted="saved(creating, $event)"
       />
     </ElDrawer>
