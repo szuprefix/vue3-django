@@ -1,40 +1,21 @@
 <script setup>
-import { ElMessage } from 'element-plus'
-import { ModelListView, ModelEditView } from '../../src/index.js'
-import { useDjango } from '../../src/composables/context.js'
-
-defineProps({
-  appModel: String,
-  mode: { type: String, default: 'list' },
-  id: [String, Number],
-})
-const { revisions } = useDjango()
-function created(appModel) {
-  revisions[appModel] = (revisions[appModel] ?? 0) + 1
-  ElMessage.success('保存成功')
-}
+import { RouterView } from 'vue-router'
+defineOptions({ name: 'App' })
 </script>
 
 <template>
-  <main class="demo-model-page">
-    <ModelListView
-      v-if="mode === 'list'"
-      :app-model="appModel"
-      @created="created(appModel)"
-      @error="ElMessage.error($event.message)"
-    />
-    <ModelEditView
-      v-else
-      :app-model="appModel"
-      :mode="mode"
-      :id="id"
-      @form-posted="ElMessage.success('保存成功')"
-      @error="ElMessage.error($event.message)"
-    />
-  </main>
+  <div
+    class="demo-app"
+    v-cloak
+  >
+    <RouterView />
+  </div>
 </template>
 
 <style>
+[v-cloak] {
+  display: none;
+}
 body {
   margin: 0;
   background: white;
@@ -43,19 +24,5 @@ body {
     system-ui,
     -apple-system,
     sans-serif;
-}
-</style>
-
-<style scoped>
-.demo-model-page {
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0 4px 12px;
-}
-@media (max-width: 600px) {
-  .demo-model-page {
-    padding: 0 0 8px;
-  }
 }
 </style>

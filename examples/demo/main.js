@@ -30,7 +30,14 @@ const modelPath = realApi ? '/course/category/' : '/demo/project/'
 const router = createDjangoRouter({
   auth,
   routes: [
-    { path: '/', redirect: modelPath },
+    {
+      path: '/',
+      component: Root,
+      children: [
+        { path: '', redirect: modelPath },
+        ...genModelRouters(apps, { modules: import.meta.glob('./views/**/*.vue') }),
+      ],
+    },
     realApi
       ? {
           path: '/auth/login/',
@@ -38,12 +45,11 @@ const router = createDjangoRouter({
           meta: { loginRequired: false, layout: 'main', title: '登录' },
         }
       : { path: '/auth/login/', redirect: modelPath },
-    ...genModelRouters(apps, { list: App, create: App, edit: App }),
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
 createApp({
-  render: () => h(ElConfigProvider, { locale: zhCn }, { default: () => h(Root) }),
+  render: () => h(ElConfigProvider, { locale: zhCn }, { default: () => h(App) }),
 })
   .use(createDjango({ registry, auth, apps, revisions: reactive({}) }))
   .use(router)

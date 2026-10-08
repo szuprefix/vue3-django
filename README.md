@@ -91,7 +91,8 @@ import { ModelTable, ModelForm } from 'vue3-django'
 保存事件 `form-posted` 保留 `{ model, data, intent }`。
 
 页面层提供 `ModelListView` 与 `ModelEditView`，demo 已使用这两个页面。
-`genModelRouters(apps)` 不传页面组件时默认使用内置列表、新增与编辑页，也可继续传入宿主页面组件覆盖。
+`genModelRouters(apps, { modules: import.meta.glob('./views/**/*.vue') })` 通过 `import_or_use_template` 动态加载页面：优先使用宿主的 `views/<app>/<model>/list.vue`、`edit.vue`，不存在时使用内置模板；新增也复用 edit 模板。已有页面的加载错误不会回退。仍可传 `{ list, create, edit }` 覆盖页面组件。
+demo 的 App.vue 只渲染 RouterView，布局由父路由的 Root.vue 提供，模型页作为子路由渲染。
 列表页读取 `config.list` 并传递 `baseQueries` 等配置，处理编辑跳转及 revisions 刷新。
 `list.mode: 'grid'` 默认使用卡片列表；传 `gridComponent` 可接入专用网格组件（并非旧 ModelGrid 的全部功能）。
 编辑页在 ModelForm 的 `bottom` 插槽挂载 `panels`（兼容旧拼写 `pannels`）折叠面板及 relations；面板的 component 接收 parent 模型上下文。

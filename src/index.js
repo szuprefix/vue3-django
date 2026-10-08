@@ -10,7 +10,12 @@ export {
 } from './core/metadata.js'
 export { createDjango, useDjango } from './composables/context.js'
 export { createAuth } from './core/auth.js'
-export { createDjangoRouter, genModelRouters, safeRedirect } from './router/index.js'
+export {
+  createDjangoRouter,
+  genModelRouters,
+  import_or_use_template,
+  safeRedirect,
+} from './router/index.js'
 export { default as ModelForm } from './components/model/Form.vue'
 export { default as ModelTable } from './components/model/Table.vue'
 export { default as ModelListView } from './views/model/list.vue'
