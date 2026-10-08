@@ -30,7 +30,7 @@
 | 动态 import 模板路径    | 宿主 import.meta.glob 注入 loadViewsConfig     |
 | element-ui / vux        | element-plus / vant                            |
 
-不是所有原有 config 配置都已实现：batchActions、导出及复杂字段仍需逐项迁移。不要将旧目录的 src 全量复制后假设已经兼容。
+不是所有原有 config 配置都已实现：batchActions 已支持范围选择、接口调用、函数和抽屉动作，旧式 dialog 配置、导出及复杂字段仍需逐项迁移。不要将旧目录的 src 全量复制后假设已经兼容。
 
 ## 路由与登录迁移
 

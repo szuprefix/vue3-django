@@ -1,54 +1,112 @@
 # vue3-django
 
-继承 `vue-django` 的理念：借鉴 Django Admin 的自动化思想，通过 DRF 元数据和少量业务配置实现前端极简定制。当前版本为 0.1.0，使用 Vue 3 + Element Plus + Vant，渐进迁移模型 CRUD、路由、登录、布局与字段控件。
+面向 Django REST Framework 的 Vue 3 管理后台框架。后端提供字段元数据，前端声明模型和少量页面配置，即可生成列表、表单、路由、菜单与编辑标签页。
 
-## 运行
+核心目标是减少重复的 CRUD 页面代码，同时保留 Vue 组件、插槽和业务路由的定制能力。PC 后台使用 Element Plus；移动端通过独立应用使用通用控件，不与后台布局混合。
 
-Node >= 22.12，执行：
+## 适合你的项目吗？
+
+适合已有 Django / DRF API，需要多个模型管理页面，并希望统一搜索、编辑、关联和操作体验的内部管理系统。
+
+你仍需提供业务 API、认证与权限校验。框架不生成 Django 后端，也不是拖拽式低代码平台；任意 REST API 不会自动获得全部模型功能，但可以使用 RemoteTable、Form 等通用组件单独接入。
+
+当前为持续完善中的框架。核心前端流程已有自动化测试，接入具体业务前仍需验证真实 API 和权限。版本见 [package.json](package.json)。
+
+## 能力概览
+
+| 能力       | 框架提供                                      | 业务需要提供                       |
+| ---------- | --------------------------------------------- | ---------------------------------- |
+| 管理后台   | 默认布局、首页、菜单、登录页、路由和多标签页  | 模型注册、认证接口、品牌与页面定制 |
+| 模型列表   | 分页、搜索、排序、列控件、双击编辑            | 列表 API、字段与搜索元数据         |
+| 模型表单   | 新建抽屉、编辑页、校验、服务端字段错误        | OPTIONS、详情与保存 API            |
+| 关联数据   | 外键选择与跳转、多对多、通用关联、关联列表    | 关联模型与配置、相应 API           |
+| 操作       | 表头与行操作、批处理、确认、异步状态、抽屉    | 动作逻辑、接口或业务组件           |
+| 媒体       | 图片/文件上传、VideoCover、表格图片与视频展示 | 上传签名与确认接口、存储服务       |
+| 定制       | 字段配置、插槽、自定义控件、模型页面和路由    | 特殊业务 UI                        |
+| 独立移动端 | Vant 示例、通用 Form 和 RemoteTable           | 自有布局与业务数据源               |
+
+ModelTable、ModelForm 和默认模型页面固定使用 PC 控件。通用 Table、RemoteTable、Form 保留移动能力。
+
+## 架构：元数据 + 配置 + 可替换组件
+
+三个层次各司其职：
+
+- **数据层**：HTTP 客户端与模型 registry 负责 OPTIONS、查询和保存，每个应用可使用独立 registry。
+- **视图配置**：apps.js 声明模型；每个模型的 config.js 指定列表、表单、搜索和关联的展示方式。字段配置覆盖后端元数据，不要求重新声明所有字段。
+- **组件层**：默认页面组合 ModelTable、ModelForm 和布局；模型组件复用 RemoteTable、Form 等通用组件。复杂业务可替换组件，不必放弃整个框架。
+
+默认入口 `createDjangoApp` 组装这些层次；已有 Vue 应用也可只使用 `createRegistry`、`createDjango` 和需要的组件。
+
+## 先体验示例
+
+需要 Node >= 22.12。在仓库根目录运行：
 
 ```sh
 npm install
-npm run dev
-npm run dev:mobile
-npm test
-npm run build
-npm run build:demo
-npm run build:mobile
+npm run dev:dashboard
 ```
 
-开发入口是 PC 模型界面的本地演示，使用 Axios adapter 模拟 OPTIONS、分页、POST、PATCH、行操作与 400 错误。数据只在内存保存，刷新重置；不需要访问旧项目或生产后端。输入已有项目名称可验证后端字段错误。
+访问终端输出的地址，默认是 [http://127.0.0.1:5173/](http://127.0.0.1:5173/)。dashboard 默认使用内存 mock，不需要 Django；刷新重置数据，输入已有项目名称可体验服务端字段错误。
 
-访问 [本地预览](http://127.0.0.1:5173/)。默认 mock 模式提供 demo/crm；真实 API 模式需先启动 Django（默认 `http://127.0.0.1:8000`），再运行：
+| 命令                      | 用途                          |
+| ------------------------- | ----------------------------- |
+| `npm run dev:dashboard`   | PC 示例，默认端口 5173        |
+| `npm run dev:mobile`      | 独立移动示例，默认端口 5174   |
+| `npm test`                | 单元与组件测试                |
+| `npm run build`           | 构建框架到 dist               |
+| `npm run build:dashboard` | 构建 PC 示例到 dist-dashboard |
+| `npm run build:mobile`    | 构建移动示例到 dist-mobile    |
+
+两个示例在 examples/dashboard、examples/mobile 中，各有入口、路由和 Vite 配置，共享仓库依赖及框架源码。移动示例使用独立内存任务数据，不连接真实 API。`npm run dev` 和 `npm run build:demo` 是 dashboard 的兼容命令。端口被占用时以终端输出为准。
+
+### 使用真实 API
+
+先启动符合下文接口约定的 Django 服务，再启动 dashboard：
 
 ```sh
-VITE_REAL_API=true npm run dev -- --port 5173
+VITE_REAL_API=true npm run dev:dashboard -- --port 5173
 ```
 
-真实模式登录入口为 `/#/auth/login/`，默认首页为 `/#/home/`，类别列表为 `/#/course/category/`。
-Vite 将 `/api` 代理到 Django，包括用于读取元数据的 OPTIONS 请求。
-如果端口已占用，请以终端输出的地址为准。
+示例代理将 /api 转发到 http://127.0.0.1:8000，包括 OPTIONS。登录路径为 `/#/auth/login/`，首页为 `/#/home/`，类别列表为 `/#/course/category/`。
 
-## 两个独立示例项目
+真实模式的 apps.js 提供多个业务模型用于接入验证；注册配置不代表所有接口、动作页面和权限已经实现或验收。
 
-- `examples/dashboard`：PC 管理后台，使用默认布局、登录、sidebar、tabs 和模型列表/表单；可切换真实 Django API。
-- `examples/mobile`：独立 Vant 应用，使用通用 Form、RemoteTable，自有路由和内存任务数据；不复用 dashboard 页面，不连接真实 API。
+## 在新项目中接入
 
-先在仓库根目录安装依赖。`npm run dev:dashboard` / `npm run dev:mobile` 分别启动两个示例；也可进入对应目录运行 `npm run dev`。两者各自提供 package.json、index.html、main.js 与 Vite 配置，共享仓库依赖和库源码。
-`npm run build:dashboard` / `npm run build:mobile` 分别输出 dist-dashboard / dist-mobile。`npm run dev` 和 `npm run build:demo` 保留为 dashboard 的兼容命令。
-移动示例仅用于展示通用控件能力，不通过 mobile 开关切换管理后台。
+以下示例假设已有 Vue 3 + Vite 项目、Vue 插件配置和 HTML 中的 `<div id="app"></div>`。
 
-dashboard 的 `examples/dashboard/apps.js` 独立维护模型注册配置。真实模式已迁入原 dashboard 的
-14 个 app、39 个 model，保留名称、图标、hidden、title_field 和动作配置。
-这些配置不代表对应旧业务页面、动作和接口均已迁移或验收；无专用 config.js 的模型使用元数据默认视图。
-demo 加载 Font Awesome 4 样式以显示原配置中的图标名称。
+安装框架与 peer dependencies；使用本地包时先构建，再通过本地依赖接入：
 
-## 默认应用入口（推荐）
+```sh
+npm install vue3-django vue element-plus vant
+```
 
-宿主只需 HTML 中的 `<div id="app"></div>`、下面的 main.js，以及 apps/config 业务配置：
+当前框架仍有 Vant 依赖，即使仅使用 PC 控件也需安装；PC 页面不必引入 Vant CSS。使用移动控件时另行加载 `vant/lib/index.css`。
+
+### 1. 注册模型
+
+`src/apps.js`：
+
+```js
+export default {
+  crm: {
+    verbose_name: '客户管理',
+    models: {
+      customer: {
+        verbose_name: '客户',
+        title_field: 'name',
+      },
+    },
+  },
+}
+```
+
+### 2. 启动默认应用
+
+`src/main.js`：
 
 ```js
 import 'element-plus/dist/index.css'
-import 'vant/lib/index.css'
 import 'vue3-django/style.css'
 import { createDjangoApp } from 'vue3-django'
 import apps from './apps.js'
@@ -57,191 +115,71 @@ const application = createDjangoApp({
   apps,
   title: '业务工作台',
   apiBaseURL: '/api/',
+  size: 'small',
   configModules: import.meta.glob('./views/**/config.js'),
   viewModules: import.meta.glob('./views/**/*.vue'),
 })
+
 application.mount('#app')
 ```
 
-默认开启真实 API 认证，沿用 auth/user 登录、当前用户与退出接口；无认证的演示项目显式设置 `auth: false`。
-首页默认进入 `/home/` 显示 Welcome，在默认布局与 tabs 内呈现；兼容 `/welcome/` 地址。可用 `homePath` 指定其他入口，通过 `components.home` 替换首页组件。
-业务视图、关联视图与抽屉视图共享宿主提供的 viewModules，仍优先业务页面、缺失才回退模板。
+宿主自行配置开发代理或部署反向代理，让 /api/ 到达后端。默认开启认证；无认证项目可显式设置 `auth: false`。
 
-可覆盖 `http`、`registry`、`auth`、`authOptions`、`router`、`history`、`locale`、`size`、`loginPath`、`menus`、`layoutProps`，
-通过 `components: { app, layout, login, home }` 替换默认组件，`modelViews` 覆盖模型页面；`routes` 添加布局内业务路由。
-返回的 `app`、`router`、`registry`、`auth` 可继续使用，挂载前可调用 `application.app.use(...)` 安装其他插件。
-`context` 可注入上传服务等已有扩展，不需要放弃底层 createDjango/createRegistry API。
+默认使用中文，控件尺寸由 Element Plus 控制。框架不指定全局尺寸，上例与 dashboard 使用 small；也可选择 default / large。
 
-默认排版提供 `--vd-body-margin`、`--vd-page-padding`、`--vd-text-color`、`--vd-background` CSS 变量。
-右上角帐号区采用名称下拉菜单，退出登录需确认；修改密码默认指向 `/auth/change_password/`，未注册该页面时菜单项禁用。可通过 `layoutProps.changePasswordPath` 修改目标路径，单独使用 Layout 时也可用 `account` 插槽覆盖帐号区。
-字体图标样式不自动引入：使用旧 Font Awesome 图标名称的宿主需自行安装并加载对应 CSS。
+### 3. 按需配置页面
 
-## 当前功能
-
-- `createDjangoApp`：内置默认入口、中文登录、布局和动态模型页，减少宿主框架代码。
-- `createDjangoRouter`、`genModelRouters` 与 `createAuth`：hash 路由、登录守卫和旧版认证接口。
-- `Layout`、`SideBar`、`ViewTabs`：菜单、独立编辑 path/tab、记录标题与图标。
-- `Form`：通用字段、校验、提交与字段错误；登录表单和 `ModelForm` 复用该组件。
-- `ModelTable`、`ModelForm`：元数据驱动列表与表单、新建抽屉、行双击编辑和行操作。
-- `Table`、`RemoteTable`、`useRemoteTable`：通用展示、远程请求与分页/排序状态，可用于非模型接口。
-
-模型表根据 OPTIONS 的 `actions.SEARCH.ordering_fields` 自动启用远程排序。字段配置 `sortable: false` 可禁用，`sortable: true` 仅排序当前页，`sortable: 'custom'` 向后端发送 ordering（降序加 `-`）。改变排序回到第一页并保留搜索；清除排序时不再发送交互排序参数，恢复后端或固定查询的默认顺序。
-
-- `ModelSearch`、`ModelSelect`、`ModelRelations`：搜索占位符、模型选择与关联视图。
-- `Drawer`、`Actions`：动态内容、完成回调、按钮/更多菜单、确认与异步状态。
-- `TableWidget`：choices、布尔、数字、日期、外键、图片、视频、JSON、HTML 和自定义渲染。
-
-表格 datetime 默认沿用旧 Date2Now：近期显示“刚刚 / 几分钟前 / 几小时前 / 1天前”，较早记录显示简短日期，悬停显示完整本地时间。`date2now`、`timestamp` 控件使用相同规则；无时区 datetime 按旧项目的北京时间解析，显式时区保留。纯 date 保留 `YYYY-MM-DD`；需要其他格式时使用字段 formatter 覆盖。
-
-- `ImageUpload`、`FileUpload`、`createUploadService`：平台无关的签名直传、后端确认、进度/取消/重试；需接入后端上传接口。
-
-上传控件接入及后端协议见 [媒体上传](docs/uploads.md)。
-
-## 接入业务
-
-```js
-import { createApp } from 'vue'
-import ElementPlus from 'element-plus'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import { createHttp, createRegistry, createDjango } from 'vue3-django'
-import 'element-plus/dist/index.css'
-import 'vant/lib/index.css'
-import 'vue3-django/style.css'
-import App from './App.vue'
-
-const modules = import.meta.glob('/src/views/**/config.js')
-const registry = createRegistry({
-  http: createHttp({ baseURL: '/api/' }),
-  apps: { crm: { models: { customer: { verbose_name: '客户' } } } },
-  loadViewsConfig: async (fullName) => {
-    const load = modules[`/src/views/${fullName.replace('.', '/')}/config.js`]
-    return load ? (await load()).default : {}
-  },
-})
-createApp(App).use(ElementPlus, { locale: zhCn }).use(createDjango({ registry })).mount('#app')
-```
-
-```vue
-<script setup>
-import { ModelTable, ModelForm } from 'vue3-django'
-</script>
-<template>
-  <ModelTable
-    app-model="crm.customer"
-    @edit="(row) => console.log(row)"
-  />
-  <ModelForm
-    app-model="crm.customer"
-    :id="123"
-    @form-posted="console.log"
-  />
-</template>
-```
-
-`ModelForm` 不传 `id` 时新增，传入时编辑。ModelTable、ModelForm 及默认模型页固定使用 PC 控件，不提供 mobile 模式；通用 Table、RemoteTable、Form 仍保留移动能力。
-表单支持 `v-model`、`defaults`、`items`，暴露 `load()`/`submit()`；列表暴露 `refresh()`。
-保存事件 `form-posted` 保留 `{ model, data, intent }`。
-
-页面层提供 `ModelListView` 与 `ModelEditView`，demo 已使用这两个页面。
-`genModelRouters(apps, { modules: import.meta.glob('./views/**/*.vue') })` 通过 `import_or_use_template` 动态加载页面：优先使用宿主的 `views/<app>/<model>/list.vue`、`edit.vue`，不存在时使用内置模板；新增也复用 edit 模板。已有页面的加载错误不会回退。仍可传 `{ list, create, edit }` 覆盖页面组件。
-默认 App 只渲染 RouterView，布局由父路由的内置 Root 提供，模型页作为子路由渲染。demo 直接使用内置组件，无需自己的 App.vue、Root.vue、Login.vue；需要定制时通过 components 覆盖。
-列表页读取 `config.list` 并传递 `baseQueries` 等配置，处理编辑跳转及 revisions 刷新。
-`list.mode: 'grid'` 配合 `gridComponent` 接入宿主专用网格组件；未提供时仍使用 PC 表格（并非旧 ModelGrid 的全部功能）。
-编辑页在 ModelForm 的 `bottom` 插槽挂载 `panels`（兼容旧拼写 `pannels`）折叠面板及 relations；面板的 component 接收 parent 模型上下文。
-新增页在保存成功后替换为编辑路径，关联区只在已有主键时显示。内置页面需要安装 vue-router，页面 props 支持 appModel、id、mode。
-
-`ModelTable` 的“新增”默认打开 Drawer，宽度 66%。
-`createDefaults` 覆盖 `baseQueries` 的新建默认值，`createDrawerSize` 调整桌面宽度。
-成功后关闭抽屉、发出 `created`（同 form-posted payload）并刷新列表；失败时保留表单。
-`create` 表示点击新增，旧宿主若通过该事件自行导航或打开弹窗，应设置 `create-mode="event"`。
-`edit` 仍由宿主处理；默认行双击也触发编辑，可用 `dblClickAction` 配置或空字符串禁用。
-表格表头与行操作默认优先使用图标按钮，Tooltip 和 aria-label 保留操作名称；未配置 icon 的动作显示文字，更多菜单内仍保留文字。`actionIconOnly: false` 可恢复图标加文字，单个动作可设置 `iconOnly: false`。
-桌面行操作采用紧凑按钮组，更多菜单仅显示箭头，沿用旧版 visibility 规则，仅在记录行悬停时显示；触屏保持常显。`hoverShow: false` 可关闭悬停隐藏，便于键盘操作。`actionsColumnWidth` 可指定操作列宽度（默认根据动作数量与文字估算）。模型表支持在 `list.options.remoteTable.table` 中配置这些选项。
-
-业务 `src/views/crm/customer/config.js` 保留旧式声明：
+不提供 config.js 时使用字段元数据生成默认视图。需要限制字段或定制操作时，在 `src/views/crm/customer/config.js` 中声明：
 
 ```js
 export default {
   list: {
     items: ['id', 'name', 'is_active'],
-    options: {
-      remoteTable: {
-        rowActions: [
-          { name: 'disable', label: '禁用', api: 'disable' },
-          { name: 'inspect', label: '查看', do: ({ row, model }) => console.log(row, model) },
-        ],
+    pageSize: 20,
+    rowActions: [
+      {
+        name: 'inspect',
+        label: '查看',
+        icon: 'eye',
+        do: ({ row }) => console.log(row),
       },
-    },
+    ],
   },
-  form: { items: ['name', { name: 'is_active', label: '启用' }] },
+  form: {
+    items: ['name', { name: 'is_active', label: '启用' }],
+  },
 }
 ```
 
-字段模板来自 OPTIONS，`items` 中的对象覆盖元数据。`create`/`update` 优先于 `form`。
-自定义字段使用 `#field-name="{ field, value, update }"`，或将 Vue 组件传给字段 `widget`；
-桌面和移动列表均支持 `#column-name="{ row, field }"`，插槽优先于内置字段渲染。
+示例字段须与实际后端一致。items 中的对象可覆盖字段属性；create / update 配置优先于 form。
 
-列表 `formatter(row, fieldName, fieldValue)` 保留 0、false 和空字符串返回值。
-组件 widget 接收整行 value/modelValue、field 和 context；旧函数 widget 使用 `(row, field)` 返回 HTML。
-HTML 输出经过 DOMPurify 清理。`useFormWidget: true` 可在单元格使用表单字段控件，
-变化发出 `field-change: { row, field, value }`，不会自动保存到 API。
+默认生成 /crm/customer/ 列表、/crm/customer/add/ 新增和 /crm/customer/:id/ 编辑路由。列表新增通常使用抽屉，编辑打开独立标签页，标题优先采用记录的 `__str__`，其次为 title_field。
 
-`ModelRelations` 支持外键、多对多及通用关联配置、关联记录的新建抽屉，以及已有记录的添加/移出。
-特殊上传控件及未覆盖的复杂业务仍由宿主插槽或自定义组件实现。
-字段控件名称与关联配置示例见 [迁移指南](docs/migration.md)。
+## 如何扩展
 
-## 路由、布局与抽屉
+- **字段**：使用 formatter、自定义 widget 或字段/列插槽。表格组件 widget 接收整行 value、field 与 context；表单 widget 使用 v-model。HTML 渲染经过 DOMPurify 清理。
+- **页面**：在 views/app/model/list.vue 或 edit.vue 提供自己的组件。构建时通过 viewModules 发现，缺少时回退默认模型模板；已有页面加载失败不会被隐藏。
+- **路由**：通过 createDjangoApp 的 routes 添加布局内业务页面，例如 `routes: [{ path: '/reports/', component: Reports, meta: { title: '报表' } }]`。自定义页面不会自动出现在模型菜单中，可通过 menus 定制导航。
+- **布局**：通过 `components: { app, layout, login, home }` 替换默认组件。首页默认 /home/，显示 Welcome；homePath 可指定其他入口。修改密码需提供业务页面。
+- **抽屉**：使用 `useDrawer().open({ component, context, onDone })`，内容组件 emit done 后关闭并回调。字符串路径需要 viewModules 中的对应业务组件，不会回退模型模板。
+- **已有应用**：使用 createRegistry / createDjango 注入模型服务，单独挂载 ModelTable、ModelForm；此时编辑导航、认证和布局由宿主管理。
+- **服务**：可传入自己的 http、registry、auth，并通过 context 注入上传服务。createDjangoApp 返回 app、router、registry、auth，挂载前可继续安装插件。
 
-宿主通过 `genModelRouters(apps, { list, create, edit })` 指定页面组件，生成列表、`add/` 和 `:id/` 路由；
-通过 `createDjangoRouter({ routes, auth })` 启用登录守卫，默认 hash 路由。
-公开页面设置 `meta.loginRequired: false`；`meta.layout: 'main'` 页面在 Layout 中独立展示。
-demo 的编辑页每条记录使用独立 path/tab，标题优先采用记录 `__str__`，并支持模型 icon。
-新建默认不打开 tab，已有 `add/` 页面路径继续兼容。
+默认应用不引入字体图标 CSS。使用 Font Awesome 名称时需自行加载对应样式；也支持 emoji 和 Vue 图标组件。
 
-`genMenusFromApps` 生成菜单，`Layout` 接入菜单、用户、退出事件及可选标题栏 actions。
-图标支持 emoji、Vue 组件及 Font Awesome 类名；宿主使用字体图标时需自行加载相应样式。
+### 操作与批处理
 
-布局子页面可使用 `useDrawer().open({ component, context, onDone })` 打开抽屉，
-内容组件 emit `done(result)` 后关闭并回调。字符串组件需要宿主配置 `loadDrawerView`，
-可用 `createDrawerViewLoader(import.meta.glob('./views/**/*.vue'))` 创建加载器。
-`Actions` 的函数 `do(context)` 执行业务操作，字符串/组件 `do` 打开抽屉；
-嵌套数组项进入“更多”菜单。详细配置见 [迁移指南](docs/migration.md)。
+三种配置用途不同：
 
-## DRF 约定
+| 配置                                                | 位置与用途                           |
+| --------------------------------------------------- | ------------------------------------ |
+| apps.js 的模型 actions                              | 模型级操作，默认进入表头更多菜单     |
+| apps.js 的模型 itemActions / config.list.rowActions | 单条记录操作                         |
+| config.list.batchActions                            | 列表上方的勾选批处理，自动显示选择列 |
 
-- 模型标识 `app.model`；接口相对于 `baseURL` 为 `app/model/`，可通过模型 `url` 覆盖。
-- OPTIONS 读取 `actions.LIST` + `actions.POST`，编辑优先读取 `actions.PATCH`，回退 POST；仅标准 DRF OPTIONS 也可以运行。
-- 查询保留 `search`、`page`、`page_size` 和业务 `baseQueries`，数组以逗号序列化。首轮分页支持 `count/results`，不分页支持数组；暂不支持 cursor/limit-offset。
-- 新增 POST、编辑 PATCH，删除 DELETE；只读和未声明字段不提交。默认假设主键名 `id`，模型 `idField` 可定制列表行键，编辑页由宿主显式传入 `id`。
-- choice 保留真实 value 类型；布尔默认值延续旧版 true，可用 OPTIONS `default` 或 `defaults` 覆盖。
-- `400` 映射为字段错误和 `non_field_errors`，HTTP 错误保留 `code/msg`，网络错误 code=-1。
-- Session 认证保留 `csrftoken`/`X-CSRFToken`，后端需先设置 CSRF cookie；也支持 `http.setAuthToken(token)`，传空值清除 Token。
-- 跨域凭证、CORS 与 CSRF trusted origins 由业务环境配置；`createHttp` 可传 Axios 配置，不自动获取 CSRF cookie，也不持久保存 Token。
-- 可选 `createAuth` 沿用 `auth/user/login/`、`auth/user/current/`、`auth/user/logout/`；JWT 使用 `token.access` 和 Bearer 请求头，并通过 `access_token` cookie 保留 Token，也支持 Session。demo 登录页可记忆用户名，但不保存密码。
+动作可使用函数 do、抽屉组件或 api。仅有 name、没有 do/api 的模型 actions 会导航到动作页面，需要宿主自行注册路由。前端 permission/show 控制展示，不能替代后端授权。
 
-## 通用外键展示
-
-普通 ForeignKey 指向固定模型；GenericForeignKey 使用记录的 content type 动态确定模型。
-
-```js
-import { GenericForeignKey } from 'vue3-django'
-
-const ownerColumn = {
-  name: 'owner_type',
-  label: '属主',
-  widget: GenericForeignKey,
-  contentTypeIdField: 'owner_type',
-  objectIdField: 'owner_id',
-}
-```
-
-也可使用字符串 `widget: 'GenericForeignKey'`。默认字段为 `content_type`、`object_id`；兼容独立使用的平铺 context、表格 context.row 和整行 value。
-需注册 `contenttypes.contenttype`，后端提供 `contenttypes/contenttype/all/` 接口（results 中包含 id、app_label、model）。映射在同一 registry 中缓存，支持分页，加载失败通过 error 事件反馈。
-已注册模型且存在编辑路由时显示“模型名称:ID”链接，点击由 RouterLink 打开对应模型 tab；未知类型、缺少路由时显示文本，不生成无效链接。`labelField` 可指定未知类型的回退文本字段，`showLink: false` 可关闭跳转。
-
-## 模型批量操作
-
-在模型 `config.js` 的 `list.batchActions` 中配置，或向 ModelTable 传入 `batch-actions`；配置后自动显示勾选列。
+批处理配置示例：
 
 ```js
 export default {
@@ -250,7 +188,6 @@ export default {
       {
         name: 'disable',
         label: '禁用',
-        icon: 'ban',
         api: 'batch_disable',
         context: { enable_flag: false },
         notice: '确定禁用这些记录吗？',
@@ -260,15 +197,48 @@ export default {
 }
 ```
 
-沿用 vue-django 的 `select`（选中）、`all`（全部）、`exclude`（其余）范围。默认 POST 到模型列表的动作接口，请求体包含 `batch_action_ids`、`scope` 和 action.context，查询参数携带当前搜索与固定条件；后端负责按范围处理数据。
-未选中时禁用，默认弹出确认（`confirm: false` 可关闭）；接口动作默认检查 `api || name` 权限，执行成功刷新列表并清除选择。
-自定义 `do({ selection, count, scope, model, parent, queries, table, confirmResult })` 和抽屉组件动作复用现有 Actions；函数确认的返回值通过 confirmResult 传递。
+未勾选时禁用，默认确认后执行。支持选中、全部、其余范围，接口提交 batch_action_ids、scope 和额外 context，查询参数携带当前筛选条件；后端负责按范围执行，成功后刷新并清除选择。
 
-## 尚未覆盖
+### 搜索、排序与字段展示
 
-这仍是渐进迁移版本，不是旧组件的完整替代。旧业务动作页面及批量操作的旧式 dialog 配置尚未完整迁移；
-基础图片/文件上传已实现，云存储签名及确认接口、大文件分片/断点续传、视频转码/VOD 尚未接通；
-复杂分组列（subColumns/rows/headerWidget）尚未支持；Date2Now 当前显示完整本地时间，未实现旧版相对时间文案。
-测试与构建通过不等于所有真实后端模型、权限和业务动作已经验收。
+搜索条件默认根据 OPTIONS 的 SEARCH 元数据生成，文本确认或失焦后查询，选择控件变化后查询；搜索过滤也需后端实现。
 
-历史迭代范围见 [迭代计划](docs/iterations.md)，当前接入约定与兼容差异见 [迁移指南](docs/migration.md)。
+ordering_fields 自动启用远程排序；字段 sortable 为 true 时仅排序当前页，为 custom 时发送 ordering，false 禁用。搜索和远程排序会回到第一页。
+
+表格支持 choices、布尔、数字、日期、外键、图片、视频、JSON 和自定义渲染。datetime 默认显示近期相对时间或简短日期，悬停显示完整时间；纯 date 显示 YYYY-MM-DD。
+
+ForeignKey 指向固定模型；GenericForeignKey 通过 content_type / object_id 映射目标，类型和 ID 字段名可配置。后者需要注册 contenttypes.contenttype 并提供 all/ 接口；未知类型或缺少路由时回退文本。控件自身的 error 事件目前不会由表格逐层转发。
+
+## 后端需要满足什么约定？
+
+默认模型接口相对于 apiBaseURL 为 app/model/，可用模型 url 覆盖。主键默认 id，可通过 idField 定制。
+
+| 请求                  | 约定                                                |
+| --------------------- | --------------------------------------------------- |
+| OPTIONS app/model/    | actions.POST 字段元数据；可扩展 LIST、PATCH、SEARCH |
+| GET app/model/        | 分页返回 count/results，或返回不分页数组            |
+| GET app/model/:id/    | 返回记录对象                                        |
+| POST app/model/       | 新增，返回保存后的记录                              |
+| PATCH app/model/:id/  | 更新，返回保存后的记录                              |
+| DELETE app/model/:id/ | 删除                                                |
+| HTTP 400              | 字段错误对象，支持 non_field_errors                 |
+
+仅标准 DRF OPTIONS 可用于基础表单与列表；搜索字段、过滤字段和排序候选依赖扩展 SEARCH 元数据或显式前端配置。查询使用 search、page、page_size、ordering；数组以逗号序列化，需后端支持对应过滤方式。当前不支持 cursor / limit-offset 分页。
+
+默认认证接口是 auth/user/login/（POST）、auth/user/current/（GET）、auth/user/logout/（GET），不是 DRF 自动提供的接口，可用 authOptions.endpoints 或自定义 auth 替换。支持 Session 与登录响应 token.access 的 Bearer 认证；后者保留在 access_token cookie 中，不自动刷新 token。
+
+Session 的 CSRF cookie 由后端设置；跨域凭证、CORS 与 CSRF trusted origins 由业务环境配置。前端不会替代后端权限、字段和批处理校验。
+
+## 当前边界
+
+- 特殊业务页面、导出和动作接口由宿主实现；框架不自动生成这些业务逻辑。
+- 复杂分组列、完整 ModelGrid 和历史 dialog 动作配置尚未实现。
+- 上传已实现前端初始化、单次 PUT/POST 直传与后端确认协议；业务需提供签名、确认和对象存储。分片、断点续传、视频转码/VOD 尚未实现。
+- 无效或未注册的关联不能自动补成可用业务模型。
+- 自动化测试通过不等于真实后端、云存储和所有浏览器交互已经验收。
+
+## 进一步阅读
+
+- [媒体上传](docs/uploads.md)：对象存储协议、上传服务和控件接入。
+- [迁移指南与配置参考](docs/migration.md)：详细控件、关联、动作与兼容约定；已有 vue-django 项目可从这里了解迁移差异。
+- [迭代记录](docs/iterations.md)：开发过程与历史范围，不作为当前能力清单。

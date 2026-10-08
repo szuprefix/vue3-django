@@ -1,6 +1,6 @@
 {
   "name": "vue3-django",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "DRF metadata-driven Vue 3 framework",
   "keywords": [
     "vue3",
