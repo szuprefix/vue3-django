@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, useSlots, watch } from 'vue'
 import { ElAlert } from 'element-plus'
 import { NoticeBar } from 'vant'
 import Form from '../form/Form.vue'
@@ -19,6 +19,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'loaded', 'form-posted', 'error', 'beforesubmit'])
 const { registry } = useDjango()
 const tab = useViewTab()
+const slots = useSlots()
+const forwardedSlots = computed(() => Object.keys(slots).filter((name) => name !== 'bottom'))
 const form = ref(),
   data = ref({}),
   fields = ref([]),
@@ -122,7 +124,7 @@ defineExpose({ load, submit, data, errors })
         @beforesubmit="emit('beforesubmit', $event)"
       >
         <template
-          v-for="(_, name) in $slots"
+          v-for="name in forwardedSlots"
           #[name]="scope"
         >
           <slot
@@ -131,6 +133,11 @@ defineExpose({ load, submit, data, errors })
           />
         </template>
       </Form>
+      <slot
+        name="bottom"
+        :model="{ ...registry.get(appModel), data }"
+        :data="data"
+      />
     </template>
   </div>
 </template>

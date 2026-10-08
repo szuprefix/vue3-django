@@ -90,6 +90,13 @@ import { ModelTable, ModelForm } from 'vue3-django'
 表单支持 `v-model`、`defaults`、`items`，暴露 `load()`/`submit()`；列表暴露 `refresh()`。
 保存事件 `form-posted` 保留 `{ model, data, intent }`。
 
+页面层提供 `ModelListView` 与 `ModelEditView`，demo 已使用这两个页面。
+`genModelRouters(apps)` 不传页面组件时默认使用内置列表、新增与编辑页，也可继续传入宿主页面组件覆盖。
+列表页读取 `config.list` 并传递 `baseQueries` 等配置，处理编辑跳转及 revisions 刷新。
+`list.mode: 'grid'` 默认使用卡片列表；传 `gridComponent` 可接入专用网格组件（并非旧 ModelGrid 的全部功能）。
+编辑页在 ModelForm 的 `bottom` 插槽挂载 `panels`（兼容旧拼写 `pannels`）折叠面板及 relations；面板的 component 接收 parent 模型上下文。
+新增页在保存成功后替换为编辑路径，关联区只在已有主键时显示。内置页面需要安装 vue-router，页面 props 支持 appModel、id、mode、mobile。
+
 `ModelTable` 的“新增”默认打开 Drawer，桌面宽度 66%，移动端全屏。
 `createDefaults` 覆盖 `baseQueries` 的新建默认值，`createDrawerSize` 调整桌面宽度。
 成功后关闭抽屉、发出 `created`（同 form-posted payload）并刷新列表；失败时保留表单。

@@ -1,4 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import ModelListView from '../views/model/list.vue'
+import ModelEditView from '../views/model/edit.vue'
 
 export function safeRedirect(value, fallback = '/') {
   return typeof value === 'string' &&
@@ -38,7 +40,14 @@ export function createDjangoRouter({
   return router
 }
 
-export function genModelRouters(apps, components) {
+export function genModelRouters(
+  apps,
+  components = {
+    list: ModelListView,
+    create: ModelEditView,
+    edit: ModelEditView,
+  },
+) {
   const views =
     typeof components === 'object' && components.list
       ? components
