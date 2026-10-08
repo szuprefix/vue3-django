@@ -9,9 +9,11 @@ Node >= 22.12，执行：
 ```sh
 npm install
 npm run dev
+npm run dev:mobile
 npm test
 npm run build
 npm run build:demo
+npm run build:mobile
 ```
 
 开发入口是 PC 模型界面的本地演示，使用 Axios adapter 模拟 OPTIONS、分页、POST、PATCH、行操作与 400 错误。数据只在内存保存，刷新重置；不需要访问旧项目或生产后端。输入已有项目名称可验证后端字段错误。
@@ -26,7 +28,16 @@ VITE_REAL_API=true npm run dev -- --port 5173
 Vite 将 `/api` 代理到 Django，包括用于读取元数据的 OPTIONS 请求。
 如果端口已占用，请以终端输出的地址为准。
 
-demo 的 `examples/demo/apps.js` 独立维护模型注册配置。真实模式已迁入原 dashboard 的
+## 两个独立示例项目
+
+- `examples/dashboard`：PC 管理后台，使用默认布局、登录、sidebar、tabs 和模型列表/表单；可切换真实 Django API。
+- `examples/mobile`：独立 Vant 应用，使用通用 Form、RemoteTable，自有路由和内存任务数据；不复用 dashboard 页面，不连接真实 API。
+
+先在仓库根目录安装依赖。`npm run dev:dashboard` / `npm run dev:mobile` 分别启动两个示例；也可进入对应目录运行 `npm run dev`。两者各自提供 package.json、index.html、main.js 与 Vite 配置，共享仓库依赖和库源码。
+`npm run build:dashboard` / `npm run build:mobile` 分别输出 dist-dashboard / dist-mobile。`npm run dev` 和 `npm run build:demo` 保留为 dashboard 的兼容命令。
+移动示例仅用于展示通用控件能力，不通过 mobile 开关切换管理后台。
+
+dashboard 的 `examples/dashboard/apps.js` 独立维护模型注册配置。真实模式已迁入原 dashboard 的
 14 个 app、39 个 model，保留名称、图标、hidden、title_field 和动作配置。
 这些配置不代表对应旧业务页面、动作和接口均已迁移或验收；无专用 config.js 的模型使用元数据默认视图。
 demo 加载 Font Awesome 4 样式以显示原配置中的图标名称。

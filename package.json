@@ -23,9 +23,13 @@
     "docs"
   ],
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "vite --config examples/dashboard/vite.config.js",
+    "dev:dashboard": "vite --config examples/dashboard/vite.config.js",
+    "dev:mobile": "vite --config examples/mobile/vite.config.js",
     "build": "vite build",
-    "build:demo": "vite build --mode demo",
+    "build:demo": "npm run build:dashboard",
+    "build:dashboard": "vite build --config examples/dashboard/vite.config.js",
+    "build:mobile": "vite build --config examples/mobile/vite.config.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",

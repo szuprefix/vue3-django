@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { apiApps, mockApps } from '../examples/demo/apps.js'
+import { apiApps, mockApps } from '../examples/dashboard/apps.js'
 import { createRegistry } from '../src/core/registry.js'
 import { genMenusFromApps } from '../src/core/menus.js'
 import { genModelRouters } from '../src/router/index.js'

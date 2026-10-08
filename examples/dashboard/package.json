@@ -1,0 +1,9 @@
+{
+  "name": "vue3-django-dashboard-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config vite.config.js",
+    "build": "vite build --config vite.config.js"
+  }
+}

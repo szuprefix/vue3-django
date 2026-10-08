@@ -1,8 +1,8 @@
 import { expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import { createDjangoApp } from '../src/app/index.js'
-import { demoAdapter } from '../examples/demo/mock.js'
-import { mockApps } from '../examples/demo/apps.js'
+import { demoAdapter } from '../examples/dashboard/mock.js'
+import { mockApps } from '../examples/dashboard/apps.js'
 import { createHttp } from '../src/core/http.js'
 
 it('默认应用挂载布局和 welcome 首页，保留可覆盖的底层实例', async () => {

@@ -1,6 +1,7 @@
 node_modules/
 dist/
-dist-demo/
+dist-mobile/
+dist-dashboard/
 .env.local
 coverage/
 .idea/

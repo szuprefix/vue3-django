@@ -1,5 +1,4 @@
 import 'element-plus/dist/index.css'
-import 'vant/lib/index.css'
 import 'font-awesome/css/font-awesome.css'
 import { createDjangoApp, createHttp } from '../../src/index.js'
 import { demoAdapter } from './mock.js'
