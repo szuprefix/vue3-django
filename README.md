@@ -22,7 +22,7 @@ npm run build:demo
 VITE_REAL_API=true npm run dev -- --port 5173
 ```
 
-真实模式登录入口为 `/#/auth/login/`，默认列表为 `/#/course/category/`。
+真实模式登录入口为 `/#/auth/login/`，默认首页为 `/#/home/`，类别列表为 `/#/course/category/`。
 Vite 将 `/api` 代理到 Django，包括用于读取元数据的 OPTIONS 请求。
 如果端口已占用，请以终端输出的地址为准。
 
@@ -31,8 +31,42 @@ demo 的 `examples/demo/apps.js` 独立维护模型注册配置。真实模式�
 这些配置不代表对应旧业务页面、动作和接口均已迁移或验收；无专用 config.js 的模型使用元数据默认视图。
 demo 加载 Font Awesome 4 样式以显示原配置中的图标名称。
 
+## 默认应用入口（推荐）
+
+宿主只需 HTML 中的 `<div id="app"></div>`、下面的 main.js，以及 apps/config 业务配置：
+
+```js
+import 'element-plus/dist/index.css'
+import 'vant/lib/index.css'
+import 'vue3-django/style.css'
+import { createDjangoApp } from 'vue3-django'
+import apps from './apps.js'
+
+const application = createDjangoApp({
+  apps,
+  title: '业务工作台',
+  apiBaseURL: '/api/',
+  configModules: import.meta.glob('./views/**/config.js'),
+  viewModules: import.meta.glob('./views/**/*.vue'),
+})
+application.mount('#app')
+```
+
+默认开启真实 API 认证，沿用 auth/user 登录、当前用户与退出接口；无认证的演示项目显式设置 `auth: false`。
+首页默认进入 `/home/` 显示 Welcome，在默认布局与 tabs 内呈现；兼容 `/welcome/` 地址。可用 `homePath` 指定其他入口，通过 `components.home` 替换首页组件。
+业务视图、关联视图与抽屉视图共享宿主提供的 viewModules，仍优先业务页面、缺失才回退模板。
+
+可覆盖 `http`、`registry`、`auth`、`authOptions`、`router`、`history`、`locale`、`loginPath`、`menus`、`layoutProps`，
+通过 `components: { app, layout, login, home }` 替换默认组件，`modelViews` 覆盖模型页面；`routes` 添加布局内业务路由。
+返回的 `app`、`router`、`registry`、`auth` 可继续使用，挂载前可调用 `application.app.use(...)` 安装其他插件。
+`context` 可注入上传服务等已有扩展，不需要放弃底层 createDjango/createRegistry API。
+
+默认排版提供 `--vd-body-margin`、`--vd-page-padding`、`--vd-text-color`、`--vd-background` CSS 变量。
+字体图标样式不自动引入：使用旧 Font Awesome 图标名称的宿主需自行安装并加载对应 CSS。
+
 ## 当前功能
 
+- `createDjangoApp`：内置默认入口、中文登录、布局和动态模型页，减少宿主框架代码。
 - `createDjangoRouter`、`genModelRouters` 与 `createAuth`：hash 路由、登录守卫和旧版认证接口。
 - `Layout`、`SideBar`、`ViewTabs`：菜单、独立编辑 path/tab、记录标题与图标。
 - `Form`：通用字段、校验、提交与字段错误；登录表单和 `ModelForm` 复用该组件。
@@ -92,7 +126,7 @@ import { ModelTable, ModelForm } from 'vue3-django'
 
 页面层提供 `ModelListView` 与 `ModelEditView`，demo 已使用这两个页面。
 `genModelRouters(apps, { modules: import.meta.glob('./views/**/*.vue') })` 通过 `import_or_use_template` 动态加载页面：优先使用宿主的 `views/<app>/<model>/list.vue`、`edit.vue`，不存在时使用内置模板；新增也复用 edit 模板。已有页面的加载错误不会回退。仍可传 `{ list, create, edit }` 覆盖页面组件。
-demo 的 App.vue 只渲染 RouterView，布局由父路由的 Root.vue 提供，模型页作为子路由渲染。
+默认 App 只渲染 RouterView，布局由父路由的内置 Root 提供，模型页作为子路由渲染。demo 直接使用内置组件，无需自己的 App.vue、Root.vue、Login.vue；需要定制时通过 components 覆盖。
 列表页读取 `config.list` 并传递 `baseQueries` 等配置，处理编辑跳转及 revisions 刷新。
 `list.mode: 'grid'` 默认使用卡片列表；传 `gridComponent` 可接入专用网格组件（并非旧 ModelGrid 的全部功能）。
 编辑页在 ModelForm 的 `bottom` 插槽挂载 `panels`（兼容旧拼写 `pannels`）折叠面板及 relations；面板的 component 接收 parent 模型上下文。

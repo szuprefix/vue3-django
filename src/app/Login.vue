@@ -1,16 +1,14 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Form } from '../../src/index.js'
-import { useDjango } from '../../src/composables/context.js'
-import { safeRedirect } from '../../src/router/index.js'
-const { auth } = useDjango()
-const router = useRouter(),
-  route = useRoute()
-const values = ref({
-  username: localStorage.getItem('auth.username') || '',
-  password: '',
-})
+import Form from '../components/form/Form.vue'
+import { useDjango } from '../composables/context.js'
+import { safeRedirect } from '../router/index.js'
+
+const { auth, application } = useDjango()
+const router = useRouter()
+const route = useRoute()
+const values = ref({ username: '', password: '' })
 const items = [
   { name: 'username', label: '帐号', required: true, autocomplete: 'username' },
   {
@@ -25,13 +23,13 @@ function submit({ formValue }) {
   return auth.login(formValue.username, formValue.password)
 }
 async function done() {
-  localStorage.setItem('auth.username', values.value.username)
   values.value.password = ''
-  await router.replace(safeRedirect(route.query.redirect))
+  await router.replace(safeRedirect(route.query.redirect, application.homePath))
 }
 </script>
+
 <template>
-  <main class="login">
+  <main class="vd-login">
     <Form
       v-model="values"
       :items="items"
@@ -42,12 +40,15 @@ async function done() {
       label-position="top"
       @form-posted="done"
     >
-      <template #header><h1>登录 vue3-django</h1></template>
+      <template #header>
+        <h1>登录 {{ application.title }}</h1>
+      </template>
     </Form>
   </main>
 </template>
+
 <style scoped>
-.login {
+.vd-login {
   max-width: 400px;
   margin: 80px auto;
   padding: 24px;

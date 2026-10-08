@@ -55,6 +55,7 @@ defineExpose({ refresh: () => table.value?.refresh() })
     :closable="false"
   />
   <component
+    class="vd-model-page"
     :is="config.mode === 'grid' && gridComponent ? gridComponent : ModelTable"
     v-else-if="config"
     ref="table"

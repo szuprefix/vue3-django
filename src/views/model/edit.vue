@@ -82,6 +82,7 @@ defineExpose({ submit: () => form.value?.submit(), load: () => form.value?.load(
   />
   <ModelForm
     v-else
+    class="vd-model-page"
     ref="form"
     v-model="data"
     v-bind="$attrs"

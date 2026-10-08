@@ -1,4 +1,9 @@
 import './style.css'
+export { createDjangoApp } from './app/index.js'
+export { default as DjangoApp } from './app/App.vue'
+export { default as DjangoRoot } from './app/Root.vue'
+export { default as DjangoLogin } from './app/Login.vue'
+export { default as DjangoHome } from './app/Home.vue'
 export { createHttp, DrfError, joinErrors } from './core/http.js'
 export { AppModel, Register, createRegistry } from './core/registry.js'
 export {
