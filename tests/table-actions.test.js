@@ -5,6 +5,45 @@ import ModelTable from '../src/components/model/Table.vue'
 import Actions from '../src/components/layout/Actions.vue'
 import { DjangoKey } from '../src/composables/context.js'
 
+it('桌面行操作采用紧凑按钮组和悬停类，更多入口只显示箭头', async () => {
+  const wrapper = mount(Table, {
+    props: {
+      rows: [{ id: 1 }],
+      rowActions: ['edit', ['delete']],
+      actionMap: {
+        edit: { label: '编辑', icon: 'edit', do: vi.fn() },
+        delete: { label: '删除', do: vi.fn() },
+      },
+    },
+  })
+  await flushPromises()
+  const actions = wrapper.find('.vd-row-actions')
+  expect(actions.classes()).toContain('hover-show')
+  expect(actions.classes()).toContain('is-compact')
+  expect(actions.find('[aria-label="更多操作"]').text()).toBe('▾')
+  expect(actions.findAll('button')[0].attributes('title')).toBeUndefined()
+  const tooltip = wrapper
+    .findAllComponents({ name: 'ElTooltip' })
+    .find((item) => item.props('content') === '编辑')
+  expect(tooltip.props('showAfter')).toBe(100)
+  expect(tooltip.props('hideAfter')).toBe(0)
+  expect(tooltip.props('enterable')).toBe(false)
+  const editButton = actions.findAll('button')[0]
+  await editButton.trigger('mouseenter')
+  expect(tooltip.props('visible')).toBe(true)
+  await editButton.trigger('mouseleave')
+  expect(tooltip.props('visible')).toBe(false)
+  await editButton.trigger('focus')
+  expect(tooltip.props('visible')).toBe(false)
+  expect(actions.findAll('button')[0].attributes('aria-label')).toBe('编辑')
+  expect(actions.text()).not.toContain('编辑')
+  await wrapper.setProps({ actionIconOnly: false })
+  expect(wrapper.find('.vd-row-actions').text()).toContain('编辑')
+  await wrapper.setProps({ hoverShow: false, actionsColumnWidth: 200 })
+  expect(wrapper.find('.vd-row-actions').classes()).not.toContain('hover-show')
+  wrapper.unmount()
+})
+
 it('行操作传递记录上下文，并保留旧 actions 事件', async () => {
   const row = { id: 7 }
   const run = vi.fn()

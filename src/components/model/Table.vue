@@ -25,6 +25,9 @@ const props = defineProps({
   permissionFunction: Function,
   parent: Object,
   selection: Boolean,
+  hoverShow: { type: Boolean, default: undefined },
+  actionsColumnWidth: [Number, String],
+  actionIconOnly: { type: Boolean, default: undefined },
   dblClickAction: String,
   createMode: { type: String, default: 'drawer' },
   createDefaults: Object,
@@ -82,14 +85,22 @@ async function create() {
 async function request(params) {
   const current = ++generation
   const model = registry.get(props.appModel)
-  const [metadata, config] = await Promise.all([model.fields(), model.loadViewsConfig()])
+  const [metadata, config, options] = await Promise.all([
+    model.fields(),
+    model.loadViewsConfig(),
+    model.loadOptions?.() ?? {},
+  ])
   const result = await model.query({ ...params, ...config.list?.baseQueries, ...props.baseQueries })
   if (current === generation) {
     views.value = config
+    const orderingFields = options.actions?.SEARCH?.ordering_fields ?? []
     fields.value = normalizeItems(
       props.items ?? config.list?.items ?? config.list?.table ?? 'all',
       metadata,
-    )
+    ).map((field) => ({
+      ...field,
+      sortable: field.sortable ?? (orderingFields.includes(field.name) ? 'custom' : false),
+    }))
   }
   return result
 }
@@ -329,6 +340,18 @@ defineExpose({ refresh: load, load })
       :permission-function="permitted"
       :execute-action="executeAction"
       :selection="selection"
+      :action-icon-only="
+        actionIconOnly ??
+        remoteOptions.table?.actionIconOnly ??
+        remoteOptions.actionIconOnly ??
+        true
+      "
+      :hover-show="hoverShow ?? remoteOptions.table?.hoverShow ?? remoteOptions.hoverShow ?? true"
+      :actions-column-width="
+        actionsColumnWidth ??
+        remoteOptions.table?.actionsColumnWidth ??
+        remoteOptions.actionsColumnWidth
+      "
       @selection-change="selectedRows = $event"
       @action-done="(result, action) => emit('action-done', result, action)"
       @loaded="emit('loaded', $event)"

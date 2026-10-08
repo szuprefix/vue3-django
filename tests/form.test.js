@@ -99,7 +99,7 @@ describe('同一模型的桌面和移动表单', () => {
     expect(wrapper.text()).toContain('测试项目')
     await wrapper
       .findAll('button')
-      .find((button) => button.text() === '编辑')
+      .find((button) => button.attributes('aria-label') === '编辑')
       .trigger('click')
     expect(wrapper.emitted('edit')[0][0].id).toBe(0)
     wrapper.unmount()

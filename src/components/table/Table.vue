@@ -21,6 +21,9 @@ const props = defineProps({
   permissionFunction: Function,
   executeAction: Function,
   selection: Boolean,
+  hoverShow: { type: Boolean, default: true },
+  actionsColumnWidth: [Number, String],
+  actionIconOnly: { type: Boolean, default: true },
 })
 const emit = defineEmits([
   'edit',
@@ -46,6 +49,29 @@ const legacyActions = computed(() =>
   })),
 )
 const resolvedActionMap = computed(() => ({ ...props.avairableActions, ...props.actionMap }))
+const actionWidth = computed(() => {
+  if (props.actionsColumnWidth != null) return props.actionsColumnWidth
+  const width = (items = []) =>
+    items.reduce((total, item) => {
+      if (Array.isArray(item)) return total + (item.length ? 28 : 0)
+      const action = typeof item === 'string' ? resolvedActionMap.value[item] : item
+      const label =
+        action?.label ??
+        action?.title ??
+        action?.verbose_name ??
+        (typeof item === 'string' ? item : item.name)
+      return (
+        total +
+        (props.actionIconOnly && action?.icon && action.iconOnly !== false
+          ? 30
+          : Math.max(70, String(label ?? '').length * 14 + 36))
+      )
+    }, 16)
+  return Math.max(
+    width(props.topActions),
+    width(props.rowActions ?? [...(props.showEdit ? ['edit'] : []), ...props.actions]),
+  )
+})
 </script>
 <template>
   <div
@@ -54,6 +80,8 @@ const resolvedActionMap = computed(() => ({ ...props.avairableActions, ...props.
   >
     <slot name="left" />
     <Actions
+      :icon-only="actionIconOnly"
+      compact
       :items="topActions"
       :map="resolvedActionMap"
       :context="topActionContext"
@@ -95,9 +123,13 @@ const resolvedActionMap = computed(() => ({ ...props.avairableActions, ...props.
       <Cell v-if="showEdit || rowActions?.length || actions.length">
         <template #value>
           <Actions
+            :icon-only="actionIconOnly"
+            compact
             :items="
               rowActions ?? [
-                ...(showEdit ? [{ name: 'edit', label: '编辑', do: () => emit('edit', row) }] : []),
+                ...(showEdit
+                  ? [{ name: 'edit', label: '编辑', icon: 'edit', do: () => emit('edit', row) }]
+                  : []),
                 ...legacyActions,
               ]
             "
@@ -161,7 +193,7 @@ const resolvedActionMap = computed(() => ({ ...props.avairableActions, ...props.
       <ElTableColumn
         v-if="topActions?.length || showEdit || rowActions?.length || actions.length"
         label="操作"
-        min-width="140"
+        :min-width="actionWidth"
         align="right"
         fixed="right"
       >
@@ -170,6 +202,8 @@ const resolvedActionMap = computed(() => ({ ...props.avairableActions, ...props.
           #header
         >
           <Actions
+            :icon-only="actionIconOnly"
+            compact
             :items="topActions"
             :map="resolvedActionMap"
             :context="topActionContext"
@@ -181,9 +215,14 @@ const resolvedActionMap = computed(() => ({ ...props.avairableActions, ...props.
         </template>
         <template #default="{ row, $index }">
           <Actions
+            class="vd-row-actions"
+            :icon-only="actionIconOnly"
+            :class="{ 'hover-show': hoverShow }"
             :items="
               rowActions ?? [
-                ...(showEdit ? [{ name: 'edit', label: '编辑', do: () => emit('edit', row) }] : []),
+                ...(showEdit
+                  ? [{ name: 'edit', label: '编辑', icon: 'edit', do: () => emit('edit', row) }]
+                  : []),
                 ...legacyActions,
               ]
             "
@@ -191,7 +230,7 @@ const resolvedActionMap = computed(() => ({ ...props.avairableActions, ...props.
             :context="rowContext(row, $index)"
             :permission-function="permissionFunction"
             :execute="executeAction"
-            link
+            compact
             @done="(result, action) => emit('action-done', result, action)"
             @error="emit('error', $event)"
           />
@@ -202,6 +241,15 @@ const resolvedActionMap = computed(() => ({ ...props.avairableActions, ...props.
 </template>
 
 <style scoped>
+@media (hover: hover) and (pointer: fine) {
+  :deep(.vd-row-actions.hover-show) {
+    visibility: hidden;
+  }
+  :deep(.el-table__row:hover .vd-row-actions.hover-show) {
+    visibility: visible;
+    cursor: pointer;
+  }
+}
 .vd-table-actions {
   display: flex;
   align-items: center;

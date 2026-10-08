@@ -1,7 +1,7 @@
 <script setup>
 import { computed, provide, ref } from 'vue'
-import { useRoute, RouterView, RouterLink } from 'vue-router'
-import { ElButton } from 'element-plus'
+import { useRoute, useRouter, RouterView, RouterLink } from 'vue-router'
+import { ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessageBox } from 'element-plus'
 import SideBar from './SideBar.vue'
 import ViewTabs from './ViewTabs.vue'
 import Drawer from './Drawer.vue'
@@ -16,11 +16,37 @@ const props = defineProps({
   actionMap: Object,
   permissionFunction: Function,
   loadDrawerView: Function,
+  changePasswordPath: { type: String, default: '/auth/change_password/' },
 })
 const emit = defineEmits(['logout', 'action-done', 'error'])
 const route = useRoute(),
   opened = ref(false),
   tabs = ref()
+const router = useRouter()
+const accountName = computed(
+  () => props.user?.name || props.user?.username || props.user?.email || '用户',
+)
+const passwordAvailable = computed(() => {
+  if (!props.changePasswordPath) return false
+  const matched = router.resolve(props.changePasswordPath).matched
+  return matched.length > 0 && !matched.some((item) => item.path.includes(':pathMatch'))
+})
+async function accountCommand(command) {
+  try {
+    if (command === 'logout') {
+      await ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
+        type: 'warning',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+      })
+      emit('logout')
+    } else if (command === 'password' && passwordAvailable.value) {
+      await router.push(props.changePasswordPath)
+    }
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') emit('error', error)
+  }
+}
 const drawer = ref()
 const drawerApi = {
   open: (options) => drawer.value.open(options),
@@ -66,13 +92,43 @@ defineExpose({
             @error="emit('error', $event)"
           />
         </slot>
-        <span>{{ user?.name || user?.username }}</span>
-        <ElButton
-          v-if="user"
-          @click="$emit('logout')"
+        <slot
+          name="account"
+          :user="user"
+          :name="accountName"
         >
-          退出登录
-        </ElButton>
+          <ElDropdown
+            v-if="user"
+            trigger="click"
+            placement="bottom-end"
+            @command="accountCommand"
+          >
+            <button
+              class="account-trigger"
+              type="button"
+              :aria-label="`${accountName}，帐号菜单`"
+            >
+              <span class="account-name">{{ accountName }}</span>
+              <span
+                class="account-arrow"
+                aria-hidden="true"
+              >
+                ⌄
+              </span>
+            </button>
+            <template #dropdown>
+              <ElDropdownMenu>
+                <ElDropdownItem command="logout">退出登录</ElDropdownItem>
+                <ElDropdownItem
+                  command="password"
+                  :disabled="!passwordAvailable"
+                >
+                  修改密码
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            </template>
+          </ElDropdown>
+        </slot>
       </div>
     </header>
     <div class="layout-body">
@@ -130,7 +186,38 @@ defineExpose({
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
+}
+.account-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  max-width: min(240px, 40vw);
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--el-text-color-regular, #606266);
+  font: inherit;
+  cursor: pointer;
+}
+.account-trigger:hover {
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.account-trigger:focus-visible {
+  outline: 2px solid var(--el-color-primary, #409eff);
+  outline-offset: -2px;
+}
+.account-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.account-arrow {
+  flex-shrink: 0;
+  color: var(--el-text-color-placeholder, #a8abb2);
 }
 .layout-body {
   display: flex;

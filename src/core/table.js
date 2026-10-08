@@ -39,10 +39,40 @@ export function tableDisplay(field, row) {
   return displayValue(field, value)
 }
 
-export function tableDate(value, timestamp = false) {
-  if (value == null || value === '') return ''
+function dateObject(value, timestamp) {
   const numeric = timestamp || typeof value === 'number' || /^\d+$/.test(String(value))
-  const time = numeric ? Number(value) * (Number(value) < 1e10 ? 1000 : 1) : value
-  const date = new Date(time)
+  let time = numeric ? Number(value) * (Math.abs(Number(value)) < 1e10 ? 1000 : 1) : value
+  // Legacy Django naive datetimes are Beijing time; preserve explicit Z/offsets.
+  if (
+    typeof time === 'string' &&
+    /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(time)
+  ) {
+    time = `${time.replace(' ', 'T')}+08:00`
+  }
+  return new Date(time)
+}
+
+export function tableDate(value, timestamp = false, dateOnly = false) {
+  if (value == null || value === '') return ''
+  if (dateOnly && /^\d{4}-\d{2}-\d{2}$/.test(String(value))) return String(value)
+  const date = dateObject(value, timestamp)
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('zh-CN')
+}
+
+export function tableRelativeDate(value, timestamp = false, now = new Date()) {
+  if (value == null || value === '') return ''
+  const date = dateObject(value, timestamp)
+  if (Number.isNaN(date.getTime())) return String(value)
+  const diff = (now - date) / 1000
+  if (diff >= 0) {
+    if (diff < 60) return '刚刚'
+    if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`
+    if (diff < 172800) return '1天前'
+  }
+  if (date.getFullYear() !== now.getFullYear()) {
+    const pad = (number) => String(number).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  }
+  return `${date.getMonth() + 1}月${date.getDate()}日${date.getHours()}时${date.getMinutes()}分`
 }

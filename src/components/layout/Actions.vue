@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import {
   ElButton,
   ElButtonGroup,
@@ -7,6 +7,7 @@ import {
   ElDropdownMenu,
   ElDropdownItem,
   ElMessageBox,
+  ElTooltip,
 } from 'element-plus'
 import Icon from '../widgets/Icon.vue'
 import { useDrawer } from '../../composables/drawer.js'
@@ -18,12 +19,15 @@ const props = defineProps({
   permissionFunction: Function,
   execute: Function,
   link: Boolean,
+  compact: Boolean,
+  iconOnly: Boolean,
   size: { type: String, default: 'small' },
   trigger: { type: String, default: 'hover' },
 })
 const emit = defineEmits(['done', 'error', 'command'])
 const drawer = useDrawer()
 const loadingMap = reactive({})
+const hoveredAction = ref()
 const context = computed(() =>
   typeof props.context === 'function' ? props.context() : props.context,
 )
@@ -98,32 +102,54 @@ defineExpose({ handleCommand, loadingMap })
   <ElButtonGroup
     v-if="buttons.length || dropdown.length"
     class="vd-actions"
+    :class="{ 'is-compact': compact }"
+    @mouseleave="hoveredAction = undefined"
   >
-    <ElButton
+    <ElTooltip
       v-for="action in buttons"
       :key="action.name"
-      :size="action.size ?? size"
-      :type="action.type"
-      :plain="action.plain"
-      :link="link || action.link"
-      :disabled="action.disabled"
-      :loading="loadingMap[action.name]"
-      @click="handleCommand(action)"
+      :content="action.title ?? action.label"
+      :visible="hoveredAction === action.name"
+      :show-after="100"
+      :hide-after="0"
+      :enterable="false"
+      placement="top"
+      transition=""
     >
-      <Icon :icon="action.icon" />
-      {{ action.label }}
-    </ElButton>
+      <ElButton
+        :size="action.size ?? size"
+        :type="action.type"
+        :plain="action.plain"
+        :link="link || action.link"
+        :disabled="action.disabled"
+        :loading="loadingMap[action.name]"
+        :aria-label="action.label"
+        :class="{ 'vd-action-icon': iconOnly && action.icon && action.iconOnly !== false }"
+        @click="handleCommand(action)"
+        @mouseenter="hoveredAction = action.name"
+        @mouseleave="hoveredAction = undefined"
+      >
+        <Icon :icon="action.icon" />
+        <span v-if="!iconOnly || !action.icon || action.iconOnly === false">
+          {{ action.label }}
+        </span>
+      </ElButton>
+    </ElTooltip>
     <ElDropdown
       v-if="dropdown.length"
       :size="size"
       :trigger="trigger"
+      :show-timeout="0"
+      :hide-timeout="80"
       @command="handleCommand"
     >
       <ElButton
         :size="size"
         aria-label="更多操作"
+        :class="{ 'vd-actions-more': compact }"
       >
-        更多 ▾
+        <span v-if="!compact">更多</span>
+        <span aria-hidden="true">▾</span>
       </ElButton>
       <template #dropdown>
         <ElDropdownMenu>
@@ -142,3 +168,30 @@ defineExpose({ handleCommand, loadingMap })
     </ElDropdown>
   </ElButtonGroup>
 </template>
+
+<style scoped>
+.vd-actions {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.vd-actions.is-compact :deep(.el-button) {
+  padding: 5px 8px;
+}
+.vd-actions.is-compact :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+.vd-actions.is-compact :deep(.el-dropdown) {
+  margin-left: 4px;
+}
+.vd-actions-more {
+  border: 0;
+  background: transparent;
+  padding: 5px 6px !important;
+}
+.vd-actions :deep(.vd-action-icon) {
+  width: 30px;
+  padding: 5px;
+}
+</style>

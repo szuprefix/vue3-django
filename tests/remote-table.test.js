@@ -4,6 +4,68 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { useRemoteTable } from '../src/composables/remote-table.js'
 import RemoteTable from '../src/components/table/RemoteTable.vue'
 import Table from '../src/components/table/Table.vue'
+import ModelTable from '../src/components/model/Table.vue'
+import { DjangoKey } from '../src/composables/context.js'
+
+it('模型排序列来自 SEARCH 元数据，显式禁用与本地排序配置优先', async () => {
+  const model = {
+    fields: async () => ({ name: {}, id: {}, budget: {} }),
+    loadOptions: async () => ({
+      actions: { SEARCH: { ordering_fields: ['name', 'id', 'budget'] } },
+    }),
+    loadViewsConfig: async () => ({
+      list: {
+        items: ['name', { name: 'id', sortable: false }, { name: 'budget', sortable: true }],
+      },
+    }),
+    query: async () => ({ count: 0, results: [] }),
+  }
+  const wrapper = mount(ModelTable, {
+    props: { appModel: 'demo.project', showSearch: false },
+    global: {
+      provide: { [DjangoKey]: { registry: { get: () => model, getConfig: () => ({}) } } },
+      stubs: { Drawer: true },
+    },
+  })
+  await flushPromises()
+  expect(
+    wrapper
+      .findComponent(Table)
+      .props('fields')
+      .map((field) => field.sortable),
+  ).toEqual(['custom', false, true])
+  wrapper.unmount()
+})
+
+it('仅 custom 排序发送请求，保留搜索并回第一页，清除排序恢复默认', async () => {
+  const request = vi.fn().mockResolvedValue({ count: 100, results: [{ id: 1, name: 'A' }] })
+  const wrapper = mount(RemoteTable, {
+    props: {
+      request,
+      fields: [
+        { name: 'name', sortable: 'custom' },
+        { name: 'id', sortable: true },
+      ],
+    },
+  })
+  await flushPromises()
+  await wrapper.vm.search({ search: 'A' })
+  await wrapper.vm.changePage(3)
+  await flushPromises()
+  const table = wrapper.findComponent(Table)
+  const before = request.mock.calls.length
+  table.vm.$emit('sort-change', { prop: 'id', order: 'ascending' })
+  await flushPromises()
+  expect(request).toHaveBeenCalledTimes(before)
+  table.vm.$emit('sort-change', { prop: 'name', order: 'descending' })
+  await flushPromises()
+  expect(request.mock.calls.at(-1)[0]).toMatchObject({ ordering: '-name', page: 1, search: 'A' })
+  expect(wrapper.findComponent(Table).vm.$.uid).toBe(table.vm.$.uid)
+  table.vm.$emit('sort-change', { prop: 'name', order: null })
+  await flushPromises()
+  expect(request.mock.calls.at(-1)[0].ordering).toBeUndefined()
+  wrapper.unmount()
+})
 
 it('分页沿用原版完整布局，切换每页条数重置页码且只发一次请求', async () => {
   const request = vi.fn().mockResolvedValue({ count: 200, results: [] })

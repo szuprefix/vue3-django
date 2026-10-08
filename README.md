@@ -62,6 +62,7 @@ application.mount('#app')
 `context` 可注入上传服务等已有扩展，不需要放弃底层 createDjango/createRegistry API。
 
 默认排版提供 `--vd-body-margin`、`--vd-page-padding`、`--vd-text-color`、`--vd-background` CSS 变量。
+右上角帐号区采用名称下拉菜单，退出登录需确认；修改密码默认指向 `/auth/change_password/`，未注册该页面时菜单项禁用。可通过 `layoutProps.changePasswordPath` 修改目标路径，单独使用 Layout 时也可用 `account` 插槽覆盖帐号区。
 字体图标样式不自动引入：使用旧 Font Awesome 图标名称的宿主需自行安装并加载对应 CSS。
 
 ## 当前功能
@@ -72,9 +73,15 @@ application.mount('#app')
 - `Form`：通用字段、校验、提交与字段错误；登录表单和 `ModelForm` 复用该组件。
 - `ModelTable`、`ModelForm`：元数据驱动列表与表单、新建抽屉、行双击编辑和行操作。
 - `Table`、`RemoteTable`、`useRemoteTable`：通用展示、远程请求与分页/排序状态，可用于非模型接口。
+
+模型表根据 OPTIONS 的 `actions.SEARCH.ordering_fields` 自动启用远程排序。字段配置 `sortable: false` 可禁用，`sortable: true` 仅排序当前页，`sortable: 'custom'` 向后端发送 ordering（降序加 `-`）。改变排序回到第一页并保留搜索；清除排序时不再发送交互排序参数，恢复后端或固定查询的默认顺序。
+
 - `ModelSearch`、`ModelSelect`、`ModelRelations`：搜索占位符、模型选择与关联视图。
 - `Drawer`、`Actions`：动态内容、完成回调、按钮/更多菜单、确认与异步状态。
 - `TableWidget`：choices、布尔、数字、日期、外键、图片、视频、JSON、HTML 和自定义渲染。
+
+表格 datetime 默认沿用旧 Date2Now：近期显示“刚刚 / 几分钟前 / 几小时前 / 1天前”，较早记录显示简短日期，悬停显示完整本地时间。`date2now`、`timestamp` 控件使用相同规则；无时区 datetime 按旧项目的北京时间解析，显式时区保留。纯 date 保留 `YYYY-MM-DD`；需要其他格式时使用字段 formatter 覆盖。
+
 - `ImageUpload`、`FileUpload`、`createUploadService`：平台无关的签名直传、后端确认、进度/取消/重试；需接入后端上传接口。
 
 上传控件接入及后端协议见 [媒体上传](docs/uploads.md)。
@@ -137,6 +144,8 @@ import { ModelTable, ModelForm } from 'vue3-django'
 成功后关闭抽屉、发出 `created`（同 form-posted payload）并刷新列表；失败时保留表单。
 `create` 表示点击新增，旧宿主若通过该事件自行导航或打开弹窗，应设置 `create-mode="event"`。
 `edit` 仍由宿主处理；默认行双击也触发编辑，可用 `dblClickAction` 配置或空字符串禁用。
+表格表头与行操作默认优先使用图标按钮，Tooltip 和 aria-label 保留操作名称；未配置 icon 的动作显示文字，更多菜单内仍保留文字。`actionIconOnly: false` 可恢复图标加文字，单个动作可设置 `iconOnly: false`。
+桌面行操作采用紧凑按钮组，更多菜单仅显示箭头，沿用旧版 visibility 规则，仅在记录行悬停时显示；触屏保持常显。`hoverShow: false` 可关闭悬停隐藏，便于键盘操作。`actionsColumnWidth` 可指定操作列宽度（默认根据动作数量与文字估算）。模型表支持在 `list.options.remoteTable.table` 中配置这些选项。
 
 业务 `src/views/crm/customer/config.js` 保留旧式声明：
 

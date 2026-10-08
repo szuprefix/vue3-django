@@ -27,6 +27,9 @@ const props = defineProps({
   permissionFunction: Function,
   executeAction: Function,
   selection: Boolean,
+  hoverShow: { type: Boolean, default: true },
+  actionsColumnWidth: [Number, String],
+  actionIconOnly: { type: Boolean, default: true },
   showPager: { type: Boolean, default: true },
 })
 const emit = defineEmits([
@@ -38,6 +41,7 @@ const emit = defineEmits([
   'field-change',
   'selection-change',
   'action-done',
+  'sort-change',
 ])
 const { registry } = useDjango()
 const currentPageSize = ref(props.pageSize)
@@ -70,6 +74,12 @@ function changePageSize(value) {
 function changePage(value) {
   if (page.value !== value) return state.changePage(value)
 }
+function sortChanged(event) {
+  emit('sort-change', event)
+  const field = props.fields.find((item) => item.name === event.prop)
+  if (field?.sortable !== 'custom') return
+  return state.sort(event)
+}
 watch(
   () => props.pageSize,
   (value) => {
@@ -100,41 +110,45 @@ defineExpose(state)
       :closable="false"
     />
     <p v-if="loading">加载中…</p>
-    <Table
-      v-else
-      :rows="rows"
-      :fields="fields"
-      :row-key="rowKey"
-      :mobile="mobile"
-      :show-edit="showEdit"
-      :actions="actions"
-      :row-actions="rowActions"
-      :top-actions="topActions"
-      :action-map="actionMap"
-      :top-action-context="topActionContext"
-      :row-action-context="rowActionContext"
-      :permission-function="permissionFunction"
-      :execute-action="executeAction"
-      :selection="selection"
-      @action-done="(result, action) => emit('action-done', result, action)"
-      @error="emit('error', $event)"
-      @edit="emit('edit', $event)"
-      @row-action="(action, row) => emit('row-action', action, row)"
-      @row-dblclick="(row, column, event) => emit('row-dblclick', row, column, event)"
-      @field-change="emit('field-change', $event)"
-      @sort-change="state.sort"
-      @selection-change="emit('selection-change', $event)"
-    >
-      <template
-        v-for="(_, name) in $slots"
-        #[name]="scope"
+    <div v-show="!loading">
+      <Table
+        :rows="rows"
+        :fields="fields"
+        :row-key="rowKey"
+        :mobile="mobile"
+        :show-edit="showEdit"
+        :actions="actions"
+        :row-actions="rowActions"
+        :top-actions="topActions"
+        :action-map="actionMap"
+        :top-action-context="topActionContext"
+        :row-action-context="rowActionContext"
+        :permission-function="permissionFunction"
+        :execute-action="executeAction"
+        :selection="selection"
+        :hover-show="hoverShow"
+        :actions-column-width="actionsColumnWidth"
+        :action-icon-only="actionIconOnly"
+        @action-done="(result, action) => emit('action-done', result, action)"
+        @error="emit('error', $event)"
+        @edit="emit('edit', $event)"
+        @row-action="(action, row) => emit('row-action', action, row)"
+        @row-dblclick="(row, column, event) => emit('row-dblclick', row, column, event)"
+        @field-change="emit('field-change', $event)"
+        @sort-change="sortChanged"
+        @selection-change="emit('selection-change', $event)"
       >
-        <slot
-          :name="name"
-          v-bind="scope || {}"
-        />
-      </template>
-    </Table>
+        <template
+          v-for="(_, name) in $slots"
+          #[name]="scope"
+        >
+          <slot
+            :name="name"
+            v-bind="scope || {}"
+          />
+        </template>
+      </Table>
+    </div>
     <div
       v-if="showPager"
       class="vd-table-pagination"

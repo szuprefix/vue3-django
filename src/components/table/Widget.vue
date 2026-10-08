@@ -5,7 +5,13 @@ import { ElImage, ElAvatar, ElTag } from 'element-plus'
 import ForeignKey from '../widgets/ForeignKey.vue'
 import VideoCover from '../media/VideoCover.vue'
 import FormField from '../form/Field.vue'
-import { fieldValue, safeUrl, tableDate, tableDisplay } from '../../core/table.js'
+import {
+  fieldValue,
+  safeUrl,
+  tableDate,
+  tableRelativeDate,
+  tableDisplay,
+} from '../../core/table.js'
 
 const props = defineProps({
   value: { type: Object, required: true },
@@ -34,7 +40,13 @@ const html = computed(() =>
     ),
   ),
 )
-const date = computed(() => tableDate(raw.value, kind.value === 'timestamp'))
+const dateOnly = computed(
+  () => kind.value === 'date' || (!widget.value && props.field.type === 'date'),
+)
+const date = computed(() => tableDate(raw.value, kind.value === 'timestamp', dateOnly.value))
+const dateLabel = computed(() =>
+  dateOnly.value ? date.value : tableRelativeDate(raw.value, kind.value === 'timestamp'),
+)
 const images = computed(() =>
   (Array.isArray(raw.value) ? raw.value : [raw.value])
     .map((value) =>
@@ -94,7 +106,7 @@ const jsonItems = computed(() =>
     "
     :title="date"
   >
-    {{ date }}
+    {{ dateLabel }}
   </span>
   <ElAvatar
     v-else-if="kind === 'avatar'"
