@@ -67,7 +67,7 @@ application.mount('#app')
 首页默认进入 `/home/` 显示 Welcome，在默认布局与 tabs 内呈现；兼容 `/welcome/` 地址。可用 `homePath` 指定其他入口，通过 `components.home` 替换首页组件。
 业务视图、关联视图与抽屉视图共享宿主提供的 viewModules，仍优先业务页面、缺失才回退模板。
 
-可覆盖 `http`、`registry`、`auth`、`authOptions`、`router`、`history`、`locale`、`loginPath`、`menus`、`layoutProps`，
+可覆盖 `http`、`registry`、`auth`、`authOptions`、`router`、`history`、`locale`、`size`、`loginPath`、`menus`、`layoutProps`，
 通过 `components: { app, layout, login, home }` 替换默认组件，`modelViews` 覆盖模型页面；`routes` 添加布局内业务路由。
 返回的 `app`、`router`、`registry`、`auth` 可继续使用，挂载前可调用 `application.app.use(...)` 安装其他插件。
 `context` 可注入上传服务等已有扩展，不需要放弃底层 createDjango/createRegistry API。
@@ -219,9 +219,54 @@ demo 的编辑页每条记录使用独立 path/tab，标题优先采用记录 `_
 - 跨域凭证、CORS 与 CSRF trusted origins 由业务环境配置；`createHttp` 可传 Axios 配置，不自动获取 CSRF cookie，也不持久保存 Token。
 - 可选 `createAuth` 沿用 `auth/user/login/`、`auth/user/current/`、`auth/user/logout/`；JWT 使用 `token.access` 和 Bearer 请求头，并通过 `access_token` cookie 保留 Token，也支持 Session。demo 登录页可记忆用户名，但不保存密码。
 
+## 通用外键展示
+
+普通 ForeignKey 指向固定模型；GenericForeignKey 使用记录的 content type 动态确定模型。
+
+```js
+import { GenericForeignKey } from 'vue3-django'
+
+const ownerColumn = {
+  name: 'owner_type',
+  label: '属主',
+  widget: GenericForeignKey,
+  contentTypeIdField: 'owner_type',
+  objectIdField: 'owner_id',
+}
+```
+
+也可使用字符串 `widget: 'GenericForeignKey'`。默认字段为 `content_type`、`object_id`；兼容独立使用的平铺 context、表格 context.row 和整行 value。
+需注册 `contenttypes.contenttype`，后端提供 `contenttypes/contenttype/all/` 接口（results 中包含 id、app_label、model）。映射在同一 registry 中缓存，支持分页，加载失败通过 error 事件反馈。
+已注册模型且存在编辑路由时显示“模型名称:ID”链接，点击由 RouterLink 打开对应模型 tab；未知类型、缺少路由时显示文本，不生成无效链接。`labelField` 可指定未知类型的回退文本字段，`showLink: false` 可关闭跳转。
+
+## 模型批量操作
+
+在模型 `config.js` 的 `list.batchActions` 中配置，或向 ModelTable 传入 `batch-actions`；配置后自动显示勾选列。
+
+```js
+export default {
+  list: {
+    batchActions: [
+      {
+        name: 'disable',
+        label: '禁用',
+        icon: 'ban',
+        api: 'batch_disable',
+        context: { enable_flag: false },
+        notice: '确定禁用这些记录吗？',
+      },
+    ],
+  },
+}
+```
+
+沿用 vue-django 的 `select`（选中）、`all`（全部）、`exclude`（其余）范围。默认 POST 到模型列表的动作接口，请求体包含 `batch_action_ids`、`scope` 和 action.context，查询参数携带当前搜索与固定条件；后端负责按范围处理数据。
+未选中时禁用，默认弹出确认（`confirm: false` 可关闭）；接口动作默认检查 `api || name` 权限，执行成功刷新列表并清除选择。
+自定义 `do({ selection, count, scope, model, parent, queries, table, confirmResult })` 和抽屉组件动作复用现有 Actions；函数确认的返回值通过 confirmResult 传递。
+
 ## 尚未覆盖
 
-这仍是渐进迁移版本，不是旧组件的完整替代。旧业务动作页面和批量操作尚未完整迁移；
+这仍是渐进迁移版本，不是旧组件的完整替代。旧业务动作页面及批量操作的旧式 dialog 配置尚未完整迁移；
 基础图片/文件上传已实现，云存储签名及确认接口、大文件分片/断点续传、视频转码/VOD 尚未接通；
 复杂分组列（subColumns/rows/headerWidget）尚未支持；Date2Now 当前显示完整本地时间，未实现旧版相对时间文案。
 测试与构建通过不等于所有真实后端模型、权限和业务动作已经验收。

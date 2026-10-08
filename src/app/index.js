@@ -93,7 +93,7 @@ export function createDjangoApp(options = {}) {
     render: () =>
       h(
         ElConfigProvider,
-        { locale: options.locale ?? zhCn },
+        { locale: options.locale ?? zhCn, size: options.size },
         { default: () => h(options.components?.app ?? App) },
       ),
   })

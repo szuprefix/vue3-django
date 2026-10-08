@@ -6,6 +6,7 @@ import { ElAlert } from 'element-plus'
 import { useDjango } from '../../composables/context.js'
 import { normalizeItems } from '../../core/metadata.js'
 import Actions from '../layout/Actions.vue'
+import BatchActions from '../layout/BatchActions.vue'
 import ModelSearch from './Search.vue'
 import RemoteTable from '../table/RemoteTable.vue'
 import Drawer from '../layout/Drawer.vue'
@@ -18,6 +19,7 @@ const props = defineProps({
   pageSizes: Array,
   rowActions: Array,
   topActions: Array,
+  batchActions: Array,
   actionMap: Object,
   avairableActions: Object,
   permissionFunction: Function,
@@ -42,6 +44,7 @@ const emit = defineEmits([
   'row-dblclick',
   'field-change',
   'action-done',
+  'selection-change',
 ])
 const createDrawer = ref()
 const drawer = useDrawer()
@@ -79,6 +82,7 @@ async function create() {
   }
 }
 async function request(params) {
+  selectedRows.value = []
   const current = ++generation
   const model = registry.get(props.appModel)
   const [metadata, config, options] = await Promise.all([
@@ -178,6 +182,38 @@ const rowActions = computed(() => {
       : configured
   return ['edit', ...(modelConfig.value.itemActions ?? []).map((action) => action.name), ['delete']]
 })
+const batchActions = computed(() =>
+  (props.batchActions ?? views.value.list?.batchActions ?? remoteOptions.value.batchActions ?? [])
+    .map((item) => {
+      const name = typeof item === 'string' ? item : item.name
+      const action = { ...actionMap.value[name], ...(typeof item === 'string' ? {} : item), name }
+      if (!action.do && !action.component) action.permission ??= action.api ?? name
+      return action
+    })
+    .filter(
+      (action) =>
+        (!action.permission || permitted(action.permission)) &&
+        (!action.show || action.show(actionContext())),
+    ),
+)
+async function executeBatchAction(action, context) {
+  if (action.do || action.component) return executeAction(action, context)
+  const model = context.model
+  const result = await registry.http.post(
+    `${model.getListUrl()}${action.api ?? action.name}/`,
+    {
+      batch_action_ids: context.selection.map((row) => row[model.config.idField ?? 'id']),
+      ...action.context,
+      ...(context.confirmResult && typeof context.confirmResult === 'object'
+        ? context.confirmResult
+        : {}),
+      scope: context.scope,
+    },
+    { params: { ...views.value.list?.baseQueries, ...props.baseQueries, ...queries.value } },
+  )
+  await load()
+  return result.data
+}
 function actionContext(scope = {}) {
   return {
     ...scope,
@@ -186,6 +222,8 @@ function actionContext(scope = {}) {
     table: tableApi,
     parent: props.parent,
     queries: queries.value,
+    selection: selectedRows.value,
+    count: remote.value?.count ?? 0,
   }
 }
 async function navigateAction(action, context) {
@@ -247,6 +285,10 @@ function onRowDblClick(row, column, event) {
 const commandActions = ref()
 const doubleClickRow = ref()
 const selectedRows = ref([])
+function selectionChanged(rows) {
+  selectedRows.value = rows
+  emit('selection-change', rows)
+}
 const tableApi = {
   refresh: load,
   load,
@@ -303,6 +345,15 @@ defineExpose({ refresh: load, load })
       type="error"
       :closable="false"
     />
+    <BatchActions
+      v-if="batchActions.length"
+      :items="batchActions"
+      :context="actionContext()"
+      :permission-function="permitted"
+      :execute="executeBatchAction"
+      @done="(result, action) => emit('action-done', result, action)"
+      @error="emit('error', $event)"
+    />
     <RemoteTable
       ref="remote"
       :request="request"
@@ -318,7 +369,7 @@ defineExpose({ refresh: load, load })
       :row-action-context="actionContext"
       :permission-function="permitted"
       :execute-action="executeAction"
-      :selection="selection"
+      :selection="selection || batchActions.length > 0"
       :action-icon-only="
         actionIconOnly ??
         remoteOptions.table?.actionIconOnly ??
@@ -331,7 +382,7 @@ defineExpose({ refresh: load, load })
         remoteOptions.table?.actionsColumnWidth ??
         remoteOptions.actionsColumnWidth
       "
-      @selection-change="selectedRows = $event"
+      @selection-change="selectionChanged"
       @action-done="(result, action) => emit('action-done', result, action)"
       @loaded="emit('loaded', $event)"
       @error="emit('error', $event)"

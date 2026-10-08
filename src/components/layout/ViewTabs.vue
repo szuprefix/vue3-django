@@ -129,11 +129,6 @@ defineExpose({ tabs, tabRemove, clearTabs, resetTabs })
 .viewtabs :deep(.el-tabs__header) {
   margin-bottom: 10px;
 }
-.viewtabs :deep(.el-tabs__item) {
-  font-size: 0.8rem;
-  height: 36px;
-  padding: 0 16px;
-}
 .tab-icon {
   width: 1em;
   height: 1em;

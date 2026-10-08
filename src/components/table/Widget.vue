@@ -3,6 +3,7 @@ import { computed, toRaw } from 'vue'
 import DOMPurify from 'dompurify'
 import { ElImage, ElAvatar, ElTag } from 'element-plus'
 import ForeignKey from '../widgets/ForeignKey.vue'
+import GenericForeignKey from '../generic/ForeignKey.vue'
 import VideoCover from '../media/VideoCover.vue'
 import FormField from '../form/Field.vue'
 import {
@@ -24,6 +25,13 @@ const raw = computed(() => fieldValue(props.value, props.field.name))
 const display = computed(() => tableDisplay(props.field, props.value))
 const widget = computed(() => {
   const configured = toRaw(props.field.cellWidget ?? props.field.widget)
+  if (
+    typeof configured === 'string' &&
+    ['genericforeignkey', 'generic/foreignkey'].includes(
+      configured.replace(/[-_ ]/g, '').toLowerCase(),
+    )
+  )
+    return GenericForeignKey
   return typeof configured === 'string' &&
     configured.replace(/[-_ ]/g, '').toLowerCase() === 'videocover'
     ? VideoCover

@@ -103,9 +103,9 @@ defineExpose({
             placement="bottom-end"
             @command="accountCommand"
           >
-            <button
+            <ElButton
               class="account-trigger"
-              type="button"
+              text
               :aria-label="`${accountName}，帐号菜单`"
             >
               <span class="account-name">{{ accountName }}</span>
@@ -115,7 +115,7 @@ defineExpose({
               >
                 ⌄
               </span>
-            </button>
+            </ElButton>
             <template #dropdown>
               <ElDropdownMenu>
                 <ElDropdownItem command="logout">退出登录</ElDropdownItem>
@@ -163,12 +163,15 @@ defineExpose({
 </template>
 <style scoped>
 .django-layout {
+  --vd-header-height: var(--el-component-size);
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background: white;
   color: #253447;
 }
 .layout-header {
-  height: 50px;
+  min-height: var(--vd-header-height);
   padding: 0 16px;
   display: flex;
   align-items: center;
@@ -177,7 +180,6 @@ defineExpose({
   border-bottom: 1px solid #e5eaf0;
 }
 .layout-brand {
-  font-size: 16px;
   font-weight: 700;
   color: inherit;
   text-decoration: none;
@@ -193,18 +195,7 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  height: 50px;
   max-width: min(240px, 40vw);
-  padding: 0 8px;
-  border: 0;
-  background: transparent;
-  color: var(--el-text-color-regular, #606266);
-  font: inherit;
-  cursor: pointer;
-}
-.account-trigger:hover {
-  color: var(--el-color-primary, #409eff);
-  background: var(--el-fill-color-light, #f5f7fa);
 }
 .account-trigger:focus-visible {
   outline: 2px solid var(--el-color-primary, #409eff);
@@ -221,7 +212,7 @@ defineExpose({
 }
 .layout-body {
   display: flex;
-  min-height: calc(100vh - 51px);
+  flex: 1;
 }
 .layout-sidebar {
   width: 190px;
@@ -231,8 +222,6 @@ defineExpose({
 }
 .layout-sidebar :deep(.el-menu) {
   border-right: 0;
-  --el-menu-item-height: 42px;
-  --el-menu-sub-item-height: 38px;
 }
 .layout-content {
   min-width: 0;
@@ -253,16 +242,13 @@ defineExpose({
   .layout-header {
     padding: 0 12px;
   }
-  .layout-brand {
-    font-size: 16px;
-  }
   .layout-sidebar {
     display: none;
   }
   .layout-sidebar.opened {
     display: block;
     position: fixed;
-    top: 51px;
+    top: calc(var(--vd-header-height) + 1px);
     bottom: 0;
     left: 0;
     z-index: 21;
@@ -271,7 +257,7 @@ defineExpose({
   .menu-backdrop {
     display: block;
     position: fixed;
-    inset: 51px 0 0;
+    inset: calc(var(--vd-header-height) + 1px) 0 0;
     background: #0006;
     border: 0;
     z-index: 20;

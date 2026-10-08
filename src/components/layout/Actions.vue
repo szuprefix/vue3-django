@@ -21,7 +21,7 @@ const props = defineProps({
   link: Boolean,
   compact: Boolean,
   iconOnly: Boolean,
-  size: { type: String, default: 'small' },
+  size: String,
   trigger: { type: String, default: 'hover' },
 })
 const emit = defineEmits(['done', 'error', 'command'])
@@ -62,7 +62,9 @@ async function handleCommand(action) {
   try {
     const actionContext = context.value
     if (typeof action.confirm === 'function') {
-      if ((await action.confirm(action, actionContext)) === false) return
+      const result = await action.confirm(action, actionContext)
+      if (result === false) return
+      actionContext.confirmResult = result
     } else if (action.confirm) {
       await ElMessageBox.confirm(action.notice ?? `确定执行“${action.label}”吗？`, '操作确认', {
         type: 'warning',
@@ -176,10 +178,6 @@ defineExpose({ handleCommand, loadingMap })
   white-space: nowrap;
   vertical-align: middle;
 }
-.vd-actions.is-compact :deep(.el-button--small) {
-  height: 32px;
-  padding: 8px 12px;
-}
 .vd-actions.is-compact :deep(.el-button + .el-button) {
   margin-left: 0;
 }
@@ -189,18 +187,8 @@ defineExpose({ handleCommand, loadingMap })
 .vd-actions-more {
   border: 0;
   background: transparent;
-  min-width: 32px;
-  padding: 8px !important;
-}
-.vd-actions :deep(.vd-action-icon) {
-  width: 36px;
-  padding: 8px;
 }
 .vd-actions :deep(.vd-action-icon .model-icon) {
   margin-right: 0;
-  font-size: 14px;
-}
-.vd-actions :deep(.vd-action-icon.el-button--large) {
-  width: 40px;
 }
 </style>

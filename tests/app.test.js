@@ -4,6 +4,27 @@ import { createDjangoApp } from '../src/app/index.js'
 import { demoAdapter } from '../examples/dashboard/mock.js'
 import { mockApps } from '../examples/dashboard/apps.js'
 import { createHttp } from '../src/core/http.js'
+import { h } from 'vue'
+import { ElInput, ElButton } from 'element-plus'
+
+it('应用默认控件尺寸可配置，局部尺寸仍可覆盖', async () => {
+  const application = createDjangoApp({
+    auth: false,
+    size: 'small',
+    history: createMemoryHistory(),
+    components: {
+      app: { render: () => h('div', [h(ElInput), h(ElButton, { size: 'large' }, () => '按钮')]) },
+    },
+  })
+  const target = document.createElement('div')
+  document.body.append(target)
+  application.mount(target)
+  await application.router.isReady()
+  expect(target.querySelector('.el-input--small')).not.toBeNull()
+  expect(target.querySelector('.el-button--large')).not.toBeNull()
+  application.app.unmount()
+  target.remove()
+})
 
 it('默认应用挂载布局和 welcome 首页，保留可覆盖的底层实例', async () => {
   const application = createDjangoApp({
