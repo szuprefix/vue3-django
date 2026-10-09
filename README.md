@@ -209,6 +209,64 @@ ordering_fields 自动启用远程排序；字段 sortable 为 true 时仅排序
 
 ForeignKey 指向固定模型；GenericForeignKey 通过 content_type / object_id 映射目标，类型和 ID 字段名可配置。后者需要注册 contenttypes.contenttype 并提供 all/ 接口；未知类型或缺少路由时回退文本。控件自身的 error 事件目前不会由表格逐层转发。
 
+## 应用状态管理
+
+createDjangoApp 自动创建并安装应用级 store，通过返回值 application.store、组件中的 useDjangoStore() 或 $store 访问。不依赖 Vuex/Pinia，不共享全局单例，也不重复保存认证状态。
+
+```js
+import { useDjangoStore } from 'vue3-django'
+
+// 在组件 setup 中调用。
+const store = useDjangoStore()
+const user = store.user // computed ref，与 auth.state.user 同步
+const menus = store.menus // computed ref，按模型权限生成菜单
+
+store.can('update', 'crm.customer')
+store.invalidate('crm.customer') // 通知已打开的模型列表刷新
+```
+
+state 管理 apps、application（标题等配置）、party 和 revisions；user、ready、menus 为派生状态。登录、用户查询和退出分别调用 store.login / getUserInfo / logout，委托同一个 auth 实例。
+租户信息通过 store.getPartyInfo() 按需读取，默认接口 saas/party/current/；可通过 createDjangoApp 的 storeOptions.partyUrl 覆盖。切换用户或退出会清理租户与模型刷新状态。
+
+store.subscribe((event, store) => ...) 订阅 user-ready、user-logout、party-ready、model-changed，返回取消订阅函数。应用卸载会清理订阅和监听；组件自行订阅时应在卸载时取消。
+自组装应用可使用 createDjangoStore({ auth, http, apps, application }) 并 app.use(store)，同时将 store 和 store.state.revisions 传入 createDjango 的 context。默认入口也可传入 store，但须与应用使用同一个 auth 实例。
+这里不提供旧 Vuex commit/dispatch 或 Vue 2 事件总线接口；用户数据持久化、业务日志和额外业务状态由宿主按需实现。
+
+## 基础工具与服务
+
+工具按职责拆分：utils 为无框架状态的函数，core 服务显式注入依赖，browser 工具仅在调用时访问 DOM。不会修改 Array.prototype，也不会在导入时发起请求或读写 localStorage。
+
+```js
+import { createStorage, createDownloadService, mapConcurrent, arrayDelta } from 'vue3-django'
+
+const cache = createStorage({ namespace: 'dashboard', tenantId: 'school-a', userId: 12 })
+cache.set('table-settings', { pageSize: 20 }, { ttl: 86400000 })
+const settings = cache.get('table-settings', { pageSize: 10 })
+
+const downloads = createDownloadService({ http: application.registry.http })
+await downloads.download('crm/customer/export/', { params: { is_active: true } })
+
+const controller = new AbortController()
+const results = await mapConcurrent(
+  [1, 2, 3],
+  2,
+  async (id, index, signal) => {
+    const response = await application.registry.http.get(`crm/customer/${id}/`, { signal })
+    return response.data
+  },
+  { signal: controller.signal },
+)
+
+const changes = arrayDelta([1, 2], [2, 3]) // { added: [3], removed: [1] }
+```
+
+- createStorage 支持 JSON 值、毫秒 TTL 和可注入的 Storage 后端；保留 0/false/空字符串，损坏或过期时返回 fallback。set/remove/clear 返回是否成功，onError 接收错误。clear 只删除当前应用/租户/用户命名空间；配额失败不清空数据。不用于保存密码等敏感数据，切换用户时应创建对应用户的新实例。
+- createDownloadService 使用注入的 HTTP 客户端，支持筛选、AbortSignal 和 Content-Disposition 文件名；默认拒绝绝对外部地址，避免意外发送应用认证信息。外部公开下载使用独立无认证客户端并显式设置 allowExternal。save 可替换，saveBlob 可单独使用。
+- mapConcurrent 验证正整数并发数，按输入顺序返回结果，不修改输入。默认失败后停止调度，等待已启动任务结束后抛错；settled: true 收集每项结果。取消立即拒绝并停止后续调度，运行中的任务需自行使用传入的 signal。onProgress 接收 completed/total/index。
+- arrayEquals 比较嵌套数组（对象按引用比较）；arrayDelta 按值/引用返回去重后的 added/removed，不跟踪对象内部变化。
+
+批量导入、任务 SSE 监听、学习时长和业务日志不包含在这套基础工具中，按业务需求另行接入。
+
 ## 后端需要满足什么约定？
 
 默认模型接口相对于 apiBaseURL 为 app/model/，可用模型 url 覆盖。主键默认 id，可通过 idField 定制。

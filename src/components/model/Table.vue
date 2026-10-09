@@ -49,7 +49,7 @@ const emit = defineEmits([
 const createDrawer = ref()
 const drawer = useDrawer()
 const router = inject(routerKey, undefined)
-const { registry, auth } = useDjango()
+const { registry, auth, store } = useDjango()
 const remote = ref()
 const fields = ref([]),
   message = ref('')
@@ -114,6 +114,7 @@ function filterChanged(value) {
 }
 function permitted(permission) {
   if (props.permissionFunction) return props.permissionFunction(permission)
+  if (store) return store.can(permission, props.appModel)
   if (!auth || auth.state.user?.is_superuser) return true
   const values = auth.state.user?.model_permissions?.[props.appModel] ?? []
   return (Array.isArray(permission) ? permission : [permission]).every((name) =>
@@ -328,9 +329,9 @@ defineExpose({ refresh: load, load })
       :permission-function="permitted"
       @error="emit('error', $event)"
     />
-    <div class="vd-toolbar">
-      <h2>{{ title }}</h2>
-    </div>
+    <!--    <div class="vd-toolbar">-->
+    <!--      <h2>{{ title }}</h2>-->
+    <!--    </div>-->
     <ModelSearch
       v-if="showSearch"
       :app-model="appModel"

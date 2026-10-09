@@ -3,19 +3,16 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElAlert } from 'element-plus'
 import Layout from '../components/layout/Layout.vue'
-import { genMenusFromApps } from '../core/menus.js'
 import { useDjango } from '../composables/context.js'
 
-const { auth, apps, application } = useDjango()
+const { auth, application, store } = useDjango()
 const router = useRouter()
 const layout = ref()
 const error = ref('')
-const menus = computed(
-  () => application.menus ?? genMenusFromApps(apps, undefined, auth?.state.user?.model_permissions),
-)
+const menus = computed(() => store.menus.value)
 async function logout() {
   try {
-    await auth?.logout()
+    await store.logout()
     layout.value?.resetTabs()
     await router.replace(application.loginPath)
   } catch (cause) {

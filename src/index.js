@@ -15,6 +15,7 @@ export {
 } from './core/metadata.js'
 export { createDjango, useDjango } from './composables/context.js'
 export { createAuth } from './core/auth.js'
+export { createDjangoStore, useDjangoStore, StoreKey } from './store/index.js'
 export {
   createDjangoRouter,
   genModelRouters,
@@ -50,3 +51,8 @@ export { createUploadService, storageUpload } from './core/upload.js'
 export { default as ImageUpload } from './components/media/ImageUpload.vue'
 export { default as FileUpload } from './components/media/FileUpload.vue'
 export { default as VideoCover } from './components/media/VideoCover.vue'
+export { createStorage } from './core/storage.js'
+export { createDownloadService, responseFileName } from './core/download.js'
+export { saveBlob, safeFileName } from './browser/download.js'
+export { mapConcurrent } from './utils/async-queue.js'
+export { arrayEquals, arrayDelta } from './utils/array.js'

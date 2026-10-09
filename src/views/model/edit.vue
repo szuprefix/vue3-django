@@ -13,7 +13,7 @@ const slots = useSlots()
 const forwardedSlots = computed(() => Object.keys(slots).filter((name) => name !== 'bottom'))
 const route = useRoute()
 const router = useRouter()
-const { registry, revisions } = useDjango()
+const { registry, revisions, store } = useDjango()
 const appModel = computed(() => props.appModel ?? route.path.split('/').slice(1, 3).join('.'))
 const id = computed(() => (props.mode === 'create' ? undefined : (props.id ?? route.params.id)))
 const data = ref({})
@@ -52,7 +52,8 @@ watch(
 )
 onBeforeUnmount(() => generation++)
 async function posted(event) {
-  if (revisions) revisions[appModel.value] = (revisions[appModel.value] ?? 0) + 1
+  if (store) store.invalidate(appModel.value)
+  else if (revisions) revisions[appModel.value] = (revisions[appModel.value] ?? 0) + 1
   emit('form-posted', event)
   const key = registry.getConfig(appModel.value).idField ?? 'id'
   if (event.intent === 'saveAndAnother') {

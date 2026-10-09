@@ -8,6 +8,7 @@ import Home from './Home.vue'
 import { createHttp } from '../core/http.js'
 import { createRegistry } from '../core/registry.js'
 import { createAuth } from '../core/auth.js'
+import { createDjangoStore } from '../store/index.js'
 import { createViewsConfigLoader } from '../core/views.js'
 import { createRelationViewLoader } from '../core/views.js'
 import { createDrawerViewLoader } from '../composables/drawer.js'
@@ -38,7 +39,7 @@ export function createDjangoApp(options = {}) {
   const homePath = options.homePath ?? '/home/'
   const loginPath = options.loginPath ?? '/auth/login/'
   if (homePath === '/' || homePath === loginPath) throw new Error('homePath 不能指向根路径或登录页')
-  const application = {
+  const application = reactive({
     title: options.title ?? 'vue3-django',
     homePath,
     loginPath,
@@ -47,7 +48,7 @@ export function createDjangoApp(options = {}) {
       loadDrawerView: createDrawerViewLoader(viewModules),
       ...options.layoutProps,
     },
-  }
+  })
   const router =
     options.router ??
     createDjangoRouter({
@@ -81,12 +82,24 @@ export function createDjangoApp(options = {}) {
         { path: '/:pathMatch(.*)*', redirect: homePath },
       ],
     })
+  const store =
+    options.store ??
+    createDjangoStore({
+      apps,
+      application,
+      auth,
+      http: registry.http,
+      revisions: options.context?.revisions,
+      ...options.storeOptions,
+    })
+  if (store.auth !== auth) throw new Error('store 与应用必须使用同一个 auth 实例')
   const context = {
     ...options.context,
     apps,
     auth,
     application,
-    revisions: options.context?.revisions ?? reactive({}),
+    store,
+    revisions: store.state.revisions,
     loadRelationView: options.context?.loadRelationView ?? createRelationViewLoader(viewModules),
   }
   const app = createApp({
@@ -97,6 +110,9 @@ export function createDjangoApp(options = {}) {
         { default: () => h(options.components?.app ?? App) },
       ),
   })
-  app.use(createDjango({ registry, ...context })).use(router)
-  return { app, router, registry, auth, mount: (target = '#app') => app.mount(target) }
+  app
+    .use(store)
+    .use(createDjango({ registry, ...context }))
+    .use(router)
+  return { app, router, registry, auth, store, mount: (target = '#app') => app.mount(target) }
 }
