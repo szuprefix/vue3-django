@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
-import { ElTable, ElTableColumn } from 'element-plus'
+import { computed, ref, onBeforeUnmount } from 'vue'
+import { excelFormat as formatExcel, writeExcel } from '../../core/excel.js'
+import { ElTable, ElTableColumn, ElButton, ElAlert } from 'element-plus'
 import { Cell, CellGroup } from 'vant'
 import Actions from '../layout/Actions.vue'
 import TableWidget from './Widget.vue'
@@ -13,7 +14,11 @@ const props = defineProps({
   showEdit: Boolean,
   actions: { type: Array, default: () => [] },
   rowActions: Array,
-  topActions: Array,
+  topActions: { type: Array, default: () => ['download'] },
+  title: { type: String, default: '导出数据' },
+  excelGetAllData: Function,
+  excelFormat: Function,
+  excelWriter: { type: Function, default: writeExcel },
   actionMap: Object,
   avairableActions: Object,
   topActionContext: [Object, Function],
@@ -48,7 +53,43 @@ const legacyActions = computed(() =>
     do: action.do ?? (({ row }) => emit('row-action', action, row)),
   })),
 )
-const resolvedActionMap = computed(() => ({ ...props.avairableActions, ...props.actionMap }))
+const exporting = ref(false)
+const exportError = ref('')
+let exportController
+async function dumpExcelData() {
+  if (exporting.value) return
+  exporting.value = true
+  exportError.value = ''
+  exportController = new AbortController()
+  const signal = exportController.signal
+  try {
+    const rows = props.excelGetAllData ? await props.excelGetAllData({ signal }) : props.rows
+    if (signal.aborted) return
+    const data = props.excelFormat ? await props.excelFormat(rows) : formatExcel(rows, props.fields)
+    if (signal.aborted) return
+    return await props.excelWriter(data, { title: props.title, signal })
+  } catch (error) {
+    if (error?.name !== 'AbortError' && error !== 'cancel' && error !== 'close') {
+      exportError.value = error.message ?? String(error)
+      throw error
+    }
+  } finally {
+    exporting.value = false
+  }
+}
+onBeforeUnmount(() => exportController?.abort())
+defineExpose({ dumpExcelData, exporting, cancelExport: () => exportController?.abort() })
+const resolvedActionMap = computed(() => ({
+  download: {
+    name: 'download',
+    label: '导出 Excel',
+    icon: 'download',
+    disabled: exporting.value,
+    do: dumpExcelData,
+  },
+  ...props.avairableActions,
+  ...props.actionMap,
+}))
 const actionWidth = computed(() => {
   if (props.actionsColumnWidth != null) return props.actionsColumnWidth
   const width = (items = []) =>
@@ -74,6 +115,19 @@ const actionWidth = computed(() => {
 })
 </script>
 <template>
+  <ElAlert
+    v-if="exportError"
+    :title="exportError"
+    type="error"
+    @close="exportError = ''"
+  />
+  <div
+    v-if="exporting"
+    role="status"
+  >
+    正在导出 Excel…
+    <ElButton @click="exportController?.abort()">取消</ElButton>
+  </div>
   <div
     v-if="mobile && topActions?.length"
     class="vd-table-actions"

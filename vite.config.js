@@ -19,7 +19,9 @@ export default defineConfig({
       formats: ['es'],
       fileName: 'vue3-django',
     },
-    rollupOptions: { external: ['vue', 'vue-router', 'axios', 'qs', 'element-plus', 'vant'] },
+    rollupOptions: {
+      external: ['vue', 'vue-router', 'axios', 'qs', 'element-plus', 'vant', 'exceljs'],
+    },
   },
   test: { environment: 'jsdom' },
 })

@@ -209,6 +209,15 @@ ordering_fields 自动启用远程排序；字段 sortable 为 true 时仅排序
 
 ForeignKey 指向固定模型；GenericForeignKey 通过 content_type / object_id 映射目标，类型和 ID 字段名可配置。后者需要注册 contenttypes.contenttype 并提供 all/ 接口；未知类型或缺少路由时回退文本。控件自身的 error 事件目前不会由表格逐层转发。
 
+### Excel 导出
+
+Table 默认提供 download 操作，导出传入的 rows；RemoteTable 和 ModelTable 按当前搜索、排序及固定查询条件获取全部记录，不只导出当前页。topActions 可覆盖或隐藏入口，保留 download 即可使用内置功能。
+
+导出文件为 .xlsx，文件名使用 title，模型表默认使用模型名称。按可见字段配置的顺序和 label 导出，保留原始数字、布尔和空值；支持 choices、formatter、嵌套 items、exportFormatter 和 export: false。不会执行单元格 widget 或导出 HTML 样式，文本不会自动转成公式。
+excelGetAllData 可覆盖数据来源，excelFormat 可返回二维数组（首行为表头），excelWriter 可替换文件写入。ExcelJS 按需加载。
+
+远程每次请求 maxPageSize 条（默认 1000），分页顺序下载并合并，超出该数量会先提醒数据一致性风险；导出不改变当前列表、分页或选择。支持取消，自定义 request(params, { signal }) 应传递 signal。分页不是后端快照，即使数量没变化也可能重复或漏行；大量记录或强一致性导出建议使用后端导出接口配合 createDownloadService。
+
 ## 应用状态管理
 
 createDjangoApp 自动创建并安装应用级 store，通过返回值 application.store、组件中的 useDjangoStore() 或 $store 访问。不依赖 Vuex/Pinia，不共享全局单例，也不重复保存认证状态。
@@ -289,7 +298,7 @@ Session 的 CSRF cookie 由后端设置；跨域凭证、CORS 与 CSRF trusted o
 
 ## 当前边界
 
-- 特殊业务页面、导出和动作接口由宿主实现；框架不自动生成这些业务逻辑。
+- 特殊业务页面、后端导出和动作接口由宿主实现；框架提供前端表格 Excel 导出，但不自动生成后端业务逻辑。
 - 复杂分组列、完整 ModelGrid 和历史 dialog 动作配置尚未实现。
 - 上传已实现前端初始化、单次 PUT/POST 直传与后端确认协议；业务需提供签名、确认和对象存储。分片、断点续传、视频转码/VOD 尚未实现。
 - 无效或未注册的关联不能自动补成可用业务模型。

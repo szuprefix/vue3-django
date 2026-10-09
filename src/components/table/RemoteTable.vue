@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { ElAlert, ElPagination } from 'element-plus'
+import { ElAlert, ElPagination, ElMessageBox } from 'element-plus'
+import { fetchExcelRows } from '../../core/excel.js'
 import { NoticeBar, Pagination } from 'vant'
 import Table from './Table.vue'
 import { useRemoteTable } from '../../composables/remote-table.js'
@@ -19,7 +20,13 @@ const props = defineProps({
   showEdit: Boolean,
   actions: Array,
   rowActions: Array,
-  topActions: { type: Array, default: () => ['refresh'] },
+  topActions: { type: Array, default: () => ['refresh', 'download'] },
+  title: String,
+  excelGetAllData: Function,
+  excelFormat: Function,
+  excelWriter: Function,
+  exportRequest: Function,
+  maxPageSize: { type: Number, default: 1000 },
   actionMap: Object,
   avairableActions: Object,
   topActionContext: [Object, Function],
@@ -60,6 +67,27 @@ const state = useRemoteTable({
   onError: (error) => emit('error', error),
 })
 const { rows, count, page, loading, error } = state
+async function excelGetAllData({ signal } = {}) {
+  if (props.excelGetAllData) return props.excelGetAllData({ signal })
+  const queries = { ...state.queries.value, ordering: state.ordering.value, ...props.baseQueries }
+  if (count.value > props.maxPageSize)
+    await ElMessageBox.confirm(
+      `将分页导出约 ${count.value} 条记录。导出期间后台数据更新可能造成重复或缺漏，请核对结果。`,
+      '分页导出提醒',
+      { type: 'warning' },
+    )
+  return fetchExcelRows(
+    async (params, options) => {
+      if (props.exportRequest) return props.exportRequest(params, options)
+      if (props.request) return props.request(params, options)
+      return (
+        await (props.http ?? registry.http).get(props.url, { params, signal: options.signal })
+      ).data
+    },
+    queries,
+    { pageSize: props.maxPageSize, signal },
+  )
+}
 const actionMap = computed(() => ({
   refresh: { name: 'refresh', label: '刷新', icon: 'refresh', do: state.refresh },
   ...props.avairableActions,
@@ -94,7 +122,13 @@ watch(
   },
   { immediate: true, deep: true },
 )
-defineExpose(state)
+const table = ref()
+defineExpose({
+  ...state,
+  excelGetAllData,
+  dumpExcelData: () => table.value?.dumpExcelData(),
+  cancelExport: () => table.value?.cancelExport(),
+})
 </script>
 
 <template>
@@ -112,7 +146,12 @@ defineExpose(state)
     <p v-if="loading">加载中…</p>
     <div v-show="!loading">
       <Table
+        ref="table"
         :rows="rows"
+        :title="title"
+        :excel-get-all-data="excelGetAllData"
+        :excel-format="excelFormat"
+        :excel-writer="excelWriter"
         :fields="fields"
         :row-key="rowKey"
         :mobile="mobile"

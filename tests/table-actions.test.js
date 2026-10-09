@@ -50,6 +50,7 @@ it('行操作传递记录上下文，并保留旧 actions 事件', async () => {
   const wrapper = mount(Table, {
     props: {
       mobile: true,
+      topActions: [],
       rows: [row],
       rowActions: ['run', 'hidden'],
       actionMap: { run: { title: '执行', do: run }, hidden: { permission: 'deny' } },

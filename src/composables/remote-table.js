@@ -69,6 +69,7 @@ export function useRemoteTable({
     count,
     page,
     queries,
+    ordering,
     loading,
     error,
     load,

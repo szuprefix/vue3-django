@@ -19,6 +19,10 @@ const props = defineProps({
   pageSizes: Array,
   rowActions: Array,
   topActions: Array,
+  excelGetAllData: Function,
+  excelFormat: Function,
+  excelWriter: Function,
+  maxPageSize: { type: Number, default: 1000 },
   batchActions: Array,
   actionMap: Object,
   avairableActions: Object,
@@ -162,6 +166,7 @@ const topActions = computed(
     remoteOptions.value.topActions ?? [
       'refresh',
       'create',
+      'download',
       ...(modelConfig.value.actions?.length
         ? [modelConfig.value.actions.map((action) => action.name)]
         : []),
@@ -260,7 +265,7 @@ async function executeAction(action, context) {
       action.method ?? 'post',
       context.row?.[context.model.config.idField ?? 'id'],
     )
-  if (!['edit', 'create', 'refresh'].includes(action.name)) await load()
+  if (!['edit', 'create', 'refresh', 'download'].includes(action.name)) await load()
   return result
 }
 function onRowDblClick(row, column, event) {
@@ -358,6 +363,20 @@ defineExpose({ refresh: load, load })
     <RemoteTable
       ref="remote"
       :request="request"
+      :export-request="
+        (params, options) =>
+          registry.http
+            .get(registry.get(appModel).getListUrl(), {
+              params: { ...params, ...views.list?.baseQueries, ...baseQueries },
+              signal: options.signal,
+            })
+            .then((response) => response.data)
+      "
+      :title="title"
+      :excel-get-all-data="excelGetAllData"
+      :excel-format="excelFormat"
+      :excel-writer="excelWriter"
+      :max-page-size="maxPageSize"
       :base-queries="baseQueries"
       :page-size="pageSize"
       :page-sizes="pageSizes"
