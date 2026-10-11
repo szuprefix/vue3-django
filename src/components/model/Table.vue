@@ -133,7 +133,7 @@ const actionMap = computed(() => ({
     name: 'create',
     label: '新建',
     icon: 'plus',
-    iconOnly: false,
+    // iconOnly: false,
     permission: 'create',
     do: create,
   },
