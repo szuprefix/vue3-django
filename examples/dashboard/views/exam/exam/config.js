@@ -3,6 +3,9 @@
 import GenericForeignKey from 'vue3-django/src/components/generic/ForeignKey.vue'
 
 export default {
+  search: {
+    owner_type: { label: '属主' },
+  },
   list: {
     items: [
       'name',

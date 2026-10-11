@@ -178,6 +178,8 @@ defineExpose({ submit, reset })
       <ElInput
         v-else-if="field.widget === 'array' || field.widget === 'input'"
         v-model="form[field.name]"
+        :type="field.widget === 'array' ? 'textarea' : 'text'"
+        :autosize="field.widget === 'array' ? { minRows: 1, maxRows: 4 } : false"
         clearable
         :placeholder="
           field.widget === 'array' ? `批量查询${field.label || field.name}` : field.placeholder
@@ -211,6 +213,7 @@ defineExpose({ submit, reset })
   max-width: 100%;
 }
 .vd-search-field :deep(.el-input),
+.vd-search-field :deep(.el-textarea),
 .vd-search-field :deep(.el-select),
 .vd-search-field :deep(.el-input-number),
 .vd-search-field :deep(.el-date-editor) {

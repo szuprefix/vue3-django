@@ -25,7 +25,6 @@ async function select(path) {
     <ElMenu
       :default-active="active"
       :collapse="collapse"
-      :default-openeds="groups.map((g) => g.name)"
       @select="select"
     >
       <template
