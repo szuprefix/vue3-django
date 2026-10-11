@@ -96,7 +96,7 @@ it('模型采用旧版嵌套 table 配置，执行后刷新，双击使用当前
     },
   })
   await flushPromises()
-  expect(wrapper.text()).not.toContain('新增')
+  expect(wrapper.text()).not.toContain('新建')
   const action = wrapper
     .findAllComponents(Actions)
     .find((component) => component.props('items').includes('run'))

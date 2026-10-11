@@ -11,6 +11,7 @@ const props = defineProps({
   field: { type: Object, required: true },
   modelValue: null,
   mobile: Boolean,
+  context: Object,
 })
 const emit = defineEmits(['update:modelValue', 'uploading', 'error'])
 const value = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
@@ -53,7 +54,9 @@ function mobileInput(v) {
     :model-value="value"
     :field="field"
   />
-  <span v-else-if="field.read_only">{{ displayValue(field, value) }}</span>
+  <span v-else-if="field.read_only || field.widget === 'readonly'">
+    {{ displayValue(field, value) }}
+  </span>
   <component
     v-else-if="uploadWidget"
     :is="uploadWidget"
@@ -75,6 +78,7 @@ function mobileInput(v) {
     v-model="value"
     :field="field"
     :app-model="relatedModel"
+    :context="context"
     @uploading="emit('uploading', $event)"
     @error="emit('error', $event)"
   />
@@ -136,10 +140,11 @@ function mobileInput(v) {
   <ElInputNumber
     v-else-if="numberType"
     v-model="value"
+    controls-position="right"
     :precision="field.type === 'integer' ? 0 : undefined"
     :min="field.min_value"
     :max="field.max_value"
-    :placeholder="field.placeholder"
+    :placeholder="field.placeholder ?? field.label"
     :aria-label="field.label || field.name"
   />
   <ElDatePicker
@@ -147,7 +152,7 @@ function mobileInput(v) {
     v-model="value"
     :type="field.type"
     :value-format="field.type === 'date' ? 'YYYY-MM-DD' : 'YYYY-MM-DDTHH:mm:ssZ'"
-    :placeholder="field.placeholder"
+    :placeholder="field.placeholder ?? field.label"
   />
   <ElInput
     v-else
@@ -155,7 +160,7 @@ function mobileInput(v) {
     :type="['textarea', 'password'].includes(field.widget) ? field.widget : 'text'"
     :maxlength="field.max_length"
     :autocomplete="field.autocomplete"
-    :placeholder="field.placeholder ?? field.help_text"
+    :placeholder="field.placeholder ?? [field.label, field.help_text].filter(Boolean).join('\n')"
     :aria-label="field.label || field.name"
   />
 </template>

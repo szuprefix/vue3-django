@@ -40,9 +40,10 @@ function setup(props = {}) {
 it('列表新增打开抽屉并传默认值，保存后刷新且不触发编辑', async () => {
   const { wrapper, open, query } = setup()
   await flushPromises()
+  expect(wrapper.find('[aria-label="新建"]').text()).toBe('新建')
   await wrapper
     .findAll('button')
-    .find((button) => button.attributes('aria-label') === '新增')
+    .find((button) => button.attributes('aria-label') === '新建')
     .trigger('click')
   await flushPromises()
   const options = open.mock.calls[0][0]
@@ -62,7 +63,7 @@ it('event 模式保留宿主新建处理，不同时打开内置抽屉', async (
   await flushPromises()
   await wrapper
     .findAll('button')
-    .find((button) => button.attributes('aria-label') === '新增')
+    .find((button) => button.attributes('aria-label') === '新建')
     .trigger('click')
   await flushPromises()
   expect(wrapper.emitted('create')).toHaveLength(1)

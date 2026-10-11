@@ -129,7 +129,14 @@ const modelConfig = computed(() => registry.getConfig(props.appModel))
 const remoteOptions = computed(() => views.value.list?.options?.remoteTable ?? {})
 const actionMap = computed(() => ({
   refresh: { name: 'refresh', label: '刷新', icon: 'refresh', do: load },
-  create: { name: 'create', label: '新增', icon: 'plus', permission: 'create', do: create },
+  create: {
+    name: 'create',
+    label: '新建',
+    icon: 'plus',
+    iconOnly: false,
+    permission: 'create',
+    do: create,
+  },
   edit: {
     name: 'edit',
     label: '编辑',
@@ -166,10 +173,7 @@ const topActions = computed(
     remoteOptions.value.topActions ?? [
       'refresh',
       'create',
-      'download',
-      ...(modelConfig.value.actions?.length
-        ? [modelConfig.value.actions.map((action) => action.name)]
-        : []),
+      ['download', ...(modelConfig.value.actions ?? []).map((action) => action.name)],
     ],
 )
 const rowActions = computed(() => {

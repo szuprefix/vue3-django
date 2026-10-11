@@ -43,7 +43,10 @@ export function normalizeItems(items = []) {
 export function getItemRules(items) {
   return Object.fromEntries(
     items
-      .filter((field) => !field.hidden && !field.read_only && field.widget !== 'hidden')
+      .filter(
+        (field) =>
+          !field.hidden && !field.read_only && !['hidden', 'readonly'].includes(field.widget),
+      )
       .map((field) => [field.name, field.rules]),
   )
 }

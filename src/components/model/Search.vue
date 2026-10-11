@@ -146,6 +146,8 @@ defineExpose({ submit, reset })
       </ElRadioGroup>
       <ElDatePicker
         v-else-if="field.widget === 'daterange'"
+        class="vd-search-date-range"
+        :range-separator="field.rangeSeparator ?? '至'"
         :model-value="form[field.name]"
         @update:model-value="changed(field.name, $event)"
         :type="field.type === 'datetime' ? 'datetimerange' : 'daterange'"
@@ -219,5 +221,17 @@ defineExpose({ submit, reset })
   display: flex;
   align-items: center;
   gap: 4px;
+}
+.vd-search-field :deep(.vd-search-date-range) {
+  box-sizing: border-box;
+}
+.vd-search-field :deep(.vd-search-date-range .el-range-input) {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+}
+.vd-search-field :deep(.vd-search-date-range .el-range-separator) {
+  flex: 0 0 auto;
+  padding: 0 4px;
 }
 </style>

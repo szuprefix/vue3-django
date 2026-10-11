@@ -15,7 +15,7 @@ export function searchWidth(field) {
   if (field.width != null) return typeof field.width === 'number' ? `${field.width}px` : field.width
   if (['input', 'array'].includes(field.widget)) return '10rem'
   if (field.widget === 'numberrange') return '16rem'
-  if (field.widget === 'daterange') return field.type === 'datetime' ? '26rem' : '20rem'
+  if (field.widget === 'daterange') return field.type === 'datetime' ? '22rem' : '18rem'
   return `${Math.max(8, (field.label || field.name || '').length + 5)}rem`
 }
 

@@ -60,7 +60,7 @@ async function load() {
     if (current !== generation) return
     const view = (isEdit.value ? views.update : views.create) ?? views.form ?? {}
     fields.value = normalizeItems(props.items ?? view.items ?? 'all', metadata).filter(
-      (field) => !field.read_only,
+      (field) => !field.read_only || field.widget === 'readonly',
     )
     changed({ ...emptyData(metadata, props.defaults), ...object, ...props.modelValue })
     updateTabTitle(object)
@@ -111,7 +111,6 @@ defineExpose({ load, submit, data, errors })
         :disabled="Boolean(message) || !fields.length"
         :show-success="false"
         submit-name="保存"
-        label-position="top"
         @update:model-value="changed"
         @form-posted="posted"
         @error="emit('error', $event)"

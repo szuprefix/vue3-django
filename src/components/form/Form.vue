@@ -1,6 +1,15 @@
 <script setup>
 import { computed, nextTick, ref, useAttrs, watch } from 'vue'
-import { ElForm, ElFormItem, ElRow, ElCol, ElButton, ElAlert, ElMessage } from 'element-plus'
+import {
+  ElForm,
+  ElFormItem,
+  ElRow,
+  ElCol,
+  ElButton,
+  ElAlert,
+  ElMessage,
+  ElTooltip,
+} from 'element-plus'
 import Field from './Field.vue'
 import { normalizeItems, getItemRules } from './Form.js'
 import { joinErrors } from '../../core/http.js'
@@ -220,7 +229,7 @@ defineExpose({ ...context, submit: onSubmit })
       type="error"
       :closable="false"
     />
-    <ElRow :gutter="20">
+    <ElRow>
       <template
         v-for="field in formItems"
         :key="field.name"
@@ -240,6 +249,25 @@ defineExpose({ ...context, submit: onSubmit })
             :label="noLabel || itemOptions.noLabel || field.noLabel ? '' : field.label"
             :error="errors[field.name]"
           >
+            <template
+              v-if="!noLabel && !itemOptions.noLabel && !field.noLabel"
+              #label
+            >
+              {{ field.label }}
+              <ElTooltip
+                v-if="field.help_text"
+                :content="field.help_text"
+                placement="top"
+              >
+                <span
+                  class="vd-form-help"
+                  tabindex="0"
+                  :aria-label="field.help_text"
+                >
+                  ⓘ
+                </span>
+              </ElTooltip>
+            </template>
             <slot
               :name="`field-${field.name}`"
               :field="field"
@@ -251,6 +279,7 @@ defineExpose({ ...context, submit: onSubmit })
                 v-else
                 :field="field"
                 :model-value="formValue[field.name]"
+                :context="formValue"
                 :mobile="mobile"
                 @update:model-value="update(field.name, $event)"
                 @uploading="uploadingFields[field.name] = $event"
@@ -298,3 +327,10 @@ defineExpose({ ...context, submit: onSubmit })
     </ElRow>
   </ElForm>
 </template>
+
+<style scoped>
+.vd-form-help {
+  margin-left: 4px;
+  cursor: help;
+}
+</style>

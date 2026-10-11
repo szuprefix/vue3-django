@@ -7,7 +7,6 @@ import { apiApps, mockApps } from './apps.js'
 const realApi = import.meta.env.VITE_REAL_API === 'true'
 const application = createDjangoApp({
   title: 'vue3-django',
-  size: 'small',
   apps: realApi ? apiApps : mockApps,
   auth: realApi ? undefined : false,
   http: realApi ? createHttp() : createHttp({ adapter: demoAdapter }),
