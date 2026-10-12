@@ -36,6 +36,7 @@ export function createDjangoApp(options = {}) {
     apps,
     options.modelViews ?? { modules: viewModules, templates: options.templates },
   )
+    // console.debug(modelRoutes)
   const homePath = options.homePath ?? '/home/'
   const loginPath = options.loginPath ?? '/auth/login/'
   if (homePath === '/' || homePath === loginPath) throw new Error('homePath 不能指向根路径或登录页')

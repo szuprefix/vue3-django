@@ -7,6 +7,8 @@ import ModelSelect from '../model/Select.vue'
 import ImageUpload from '../media/ImageUpload.vue'
 import FileUpload from '../media/FileUpload.vue'
 import VideoCover from '../media/VideoCover.vue'
+import JsonInput from './widgets/JsonInput.vue'
+import JsonEditor from './widgets/JsonEditor.vue'
 const props = defineProps({
   field: { type: Object, required: true },
   modelValue: null,
@@ -17,6 +19,11 @@ const emit = defineEmits(['update:modelValue', 'uploading', 'error'])
 const value = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
 const numberType = computed(() => ['integer', 'decimal', 'float'].includes(props.field.type))
 const widget = computed(() => toRaw(props.field.widget))
+const jsonWidget = computed(() => {
+  const name =
+    typeof widget.value === 'string' ? widget.value.replace(/[-_ ]/g, '').toLowerCase() : ''
+  return name === 'jsoninput' ? JsonInput : name === 'jsoneditor' ? JsonEditor : undefined
+})
 const videoCover = computed(
   () =>
     widget.value === VideoCover ||
@@ -57,6 +64,14 @@ function mobileInput(v) {
   <span v-else-if="field.read_only || field.widget === 'readonly'">
     {{ displayValue(field, value) }}
   </span>
+  <component
+    v-else-if="jsonWidget"
+    :is="jsonWidget"
+    v-model="value"
+    :field="field"
+    :default-value="field.defaultValue"
+    @error="emit('error', $event)"
+  />
   <component
     v-else-if="uploadWidget"
     :is="uploadWidget"

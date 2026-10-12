@@ -10,6 +10,7 @@ const router = useRouter()
 const layout = ref()
 const error = ref('')
 const menus = computed(() => store.menus.value)
+console.debug('menus:', menus)
 async function logout() {
   try {
     await store.logout()

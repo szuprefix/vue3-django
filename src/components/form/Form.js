@@ -1,4 +1,12 @@
 export function defaultRuleType(field) {
+  const widgetName = (
+    typeof field.widget === 'string'
+      ? field.widget
+      : (field.widget?.__name ?? field.widget?.name ?? '')
+  )
+    .replace(/[-_ ]/g, '')
+    .toLowerCase()
+  if (['jsoninput', 'jsoneditor'].includes(widgetName)) return 'any'
   if (field.multiple) return 'array'
   if (field.choices?.length) return typeof field.choices[0].value
   if (field.model || ['integer', 'decimal', 'float', 'number'].includes(field.type)) return 'number'
