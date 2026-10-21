@@ -105,7 +105,7 @@ const jsonItems = computed(() =>
     :aria-label="raw ? '是' : '否'"
     :title="raw ? '是' : '否'"
   >
-    {{ raw ? '✓' : '—' }}
+    {{ raw ? '✓' : '' }}
   </span>
   <span
     v-else-if="

@@ -16,7 +16,7 @@ export function safeUrl(value) {
 export function tableDisplay(field, row) {
   const value = fieldValue(row, field.name)
   if (field.formatter) return field.formatter(row, field.name, value)
-  if (value == null || value === '') return '—'
+  if (value == null || value === '') return ''
   if (field.choices) return displayValue(field, value)
   if (['integer', 'decimal', 'float', 'number', 'percent'].includes(field.type)) {
     const number = Number(value)

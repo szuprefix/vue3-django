@@ -31,7 +31,7 @@ const label = computed(() => {
   const value =
     row.value[props.field.labelField ?? props.field.name] ??
     (typeof props.value === 'object' ? null : props.value)
-  return value == null || value === '' ? '—' : String(value)
+  return value == null || value === '' ? '' : String(value)
 })
 const target = computed(() => {
   const id = objectId.value

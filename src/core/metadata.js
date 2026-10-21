@@ -43,7 +43,7 @@ export function writableData(data, fields) {
 export function displayValue(field, value) {
   const one = (value) => field.choices?.find((c) => c.value === value)?.display_name ?? value
   if (Array.isArray(value)) return value.map(one).join('、')
-  if (value == null) return '—'
+  if (value == null) return ''
   if (field.choices) return one(value)
   if (typeof value === 'boolean') return value ? '是' : '否'
   return typeof value === 'object' ? JSON.stringify(value) : value
