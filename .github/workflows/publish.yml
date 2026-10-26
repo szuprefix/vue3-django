@@ -1,0 +1,51 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'szuprefix/vue3-django'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+      - name: Validate release version
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'))
+          if (process.env.GITHUB_REF_NAME !== `v${pkg.version}`) {
+            throw new Error('Git tag must equal v + package.json version')
+          }
+          if (!/^\d+\.\d+\.\d+$/.test(pkg.version)) {
+            throw new Error('Only stable versions are published to latest')
+          }
+          if (lock.version !== pkg.version || lock.packages[''].version !== pkg.version) {
+            throw new Error('package-lock.json version must match package.json')
+          }
+          NODE
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Check package contents
+        run: npm pack --dry-run
+      - name: Publish with npm trusted publishing
+        run: npm publish --access public --tag latest

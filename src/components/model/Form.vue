@@ -60,9 +60,11 @@ async function load() {
     if (current !== generation) return
     const view = (isEdit.value ? views.update : views.create) ?? views.form ?? {}
     fields.value = normalizeItems(props.items ?? view.items ?? 'all', metadata).filter(
-      (field) => !field.read_only || field.widget === 'readonly',
+      (field) =>
+        !Object.hasOwn(props.defaults, field.name) &&
+        (!field.read_only || field.widget === 'readonly'),
     )
-    changed({ ...emptyData(metadata, props.defaults), ...object, ...props.modelValue })
+    changed({ ...emptyData(metadata), ...object, ...props.modelValue, ...props.defaults })
     updateTabTitle(object)
     emit('loaded', model)
   } catch (error) {
@@ -75,7 +77,9 @@ async function load() {
   }
 }
 function save({ formValue }) {
-  return registry.get(props.appModel).save(formValue, props.id, props.defaults)
+  return registry
+    .get(props.appModel)
+    .save({ ...formValue, ...props.defaults }, props.id, props.defaults)
 }
 function posted(result) {
   changed({ ...data.value, ...result })

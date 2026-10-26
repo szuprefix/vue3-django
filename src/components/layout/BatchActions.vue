@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { ElSelect, ElOption } from 'element-plus'
+import { ElSelect, ElOption, ElMessage } from 'element-plus'
 import Actions from './Actions.vue'
 
 const props = defineProps({
@@ -11,6 +11,12 @@ const props = defineProps({
   execute: Function,
 })
 const emit = defineEmits(['done', 'error'])
+function onDone(result, action) {
+  const rows = result?.rows ?? result?.data?.rows
+  const countInfo = rows >= 0 ? `${rows}条记录` : ''
+  ElMessage.success(`操作成功${countInfo}.`)
+  emit('done', result, action)
+}
 const scope = ref('select')
 const scopes = computed(() => {
   const selected = props.context.selection?.length ?? 0
@@ -73,7 +79,7 @@ watch(
       :permission-function="permissionFunction"
       :execute="execute"
       compact
-      @done="(result, action) => emit('done', result, action)"
+      @done="onDone"
       @error="emit('error', $event)"
     />
   </div>

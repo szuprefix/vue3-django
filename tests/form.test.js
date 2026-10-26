@@ -22,6 +22,28 @@ function mountForm(http, mobile = false) {
   })
 }
 describe('模型表单固定使用 PC 控件', () => {
+  it('defaults 中的已知关系字段隐藏，并在初始化和提交时保持固定值', async () => {
+    const http = {
+      post: vi.fn().mockResolvedValue({ data: { id: 3, name: '父记录', enabled: false } }),
+    }
+    const wrapper = mount(ModelForm, {
+      props: {
+        appModel: 'demo.project',
+        items: ['name', 'enabled'],
+        defaults: { name: '父记录' },
+        modelValue: { name: '其他记录', enabled: false },
+      },
+      global: { provide: { [DjangoKey]: { registry: registry(http) } } },
+    })
+    await flushPromises()
+    expect(wrapper.findAll('.el-input')).toHaveLength(0)
+    expect(wrapper.vm.data).toMatchObject({ name: '父记录', enabled: false })
+    wrapper.vm.data.name = '其他记录'
+    await wrapper.vm.submit()
+    await flushPromises()
+    expect(http.post).toHaveBeenCalledWith('demo/project/', { name: '父记录', enabled: false })
+    wrapper.unmount()
+  })
   it('ModelForm 复用通用 Form 并透传字段与提交插槽', async () => {
     const http = {
       post: vi.fn().mockResolvedValue({ data: { id: 3, name: '插槽值', enabled: false } }),

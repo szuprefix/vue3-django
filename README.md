@@ -306,6 +306,7 @@ Session 的 CSRF cookie 由后端设置；跨域凭证、CORS 与 CSRF trusted o
 
 ## 进一步阅读
 
+- [npm 自动发布](docs/publishing.md)：配置 Trusted Publishing，通过版本标签触发测试、构建和发布。
 - [媒体上传](docs/uploads.md)：对象存储协议、上传服务和控件接入。
 - [迁移指南与配置参考](docs/migration.md)：详细控件、关联、动作与兼容约定；已有 vue-django 项目可从这里了解迁移差异。
 - [迭代记录](docs/iterations.md)：开发过程与历史范围，不作为当前能力清单。

@@ -1,7 +1,11 @@
 {
   "name": "vue3-django",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "DRF metadata-driven Vue 3 framework",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/szuprefix/vue3-django.git"
+  },
   "keywords": [
     "vue3",
     "element-plus",

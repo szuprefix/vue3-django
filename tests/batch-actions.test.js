@@ -4,6 +4,25 @@ import BatchActions from '../src/components/layout/BatchActions.vue'
 import ModelTable from '../src/components/model/Table.vue'
 import Table from '../src/components/table/Table.vue'
 import { DjangoKey } from '../src/composables/context.js'
+import { ElMessage } from 'element-plus'
+import Actions from '../src/components/layout/Actions.vue'
+
+it.each([
+  [{ rows: 3 }, '操作成功3条记录.'],
+  [{ rows: 0 }, '操作成功0条记录.'],
+  [{ data: { rows: 2 } }, '操作成功2条记录.'],
+  [{}, '操作成功.'],
+  [{ rows: -1 }, '操作成功.'],
+])('批量操作完成后提示成功和返回条数 %j', (result, message) => {
+  const success = vi.spyOn(ElMessage, 'success').mockImplementation(() => {})
+  const wrapper = mount(BatchActions, { props: { context: { selection: [], count: 0 } } })
+  const action = { name: 'run' }
+  wrapper.findComponent(Actions).vm.$emit('done', result, action)
+  expect(success).toHaveBeenCalledWith(message)
+  expect(wrapper.emitted('done')).toEqual([[result, action]])
+  wrapper.unmount()
+  success.mockRestore()
+})
 
 it('批量操作未选择禁用，并支持选中、全部和其余范围', async () => {
   const execute = vi.fn()

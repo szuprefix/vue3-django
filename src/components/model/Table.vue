@@ -5,6 +5,7 @@ import { useDrawer } from '../../composables/drawer.js'
 import { ElAlert } from 'element-plus'
 import { useDjango } from '../../composables/context.js'
 import { normalizeItems } from '../../core/metadata.js'
+import { resolveSelection } from '../../core/selection.js'
 import Actions from '../layout/Actions.vue'
 import BatchActions from '../layout/BatchActions.vue'
 import ModelSearch from './Search.vue'
@@ -219,7 +220,7 @@ async function executeBatchAction(action, context) {
         : {}),
       scope: context.scope,
     },
-    { params: { ...views.value.list?.baseQueries, ...props.baseQueries, ...queries.value } },
+    { params: { ...queries.value, ...views.value.list?.baseQueries, ...props.baseQueries } },
   )
   await load()
   return result.data
@@ -302,6 +303,14 @@ function selectionChanged(rows) {
 const tableApi = {
   refresh: load,
   load,
+  resolveSelection: (scope = 'select') =>
+    resolveSelection({
+      scope,
+      selection: selectedRows.value,
+      model: registry.get(props.appModel),
+      queries: { ...queries.value, ...views.value.list?.baseQueries, ...props.baseQueries },
+      pageSize: props.maxPageSize,
+    }),
   get parent() {
     return props.parent
   },
@@ -322,7 +331,7 @@ watch(
     remote.value?.search({})
   },
 )
-defineExpose({ refresh: load, load })
+defineExpose({ refresh: load, load, resolveSelection: tableApi.resolveSelection })
 </script>
 <template>
   <section :aria-busy="remote?.loading">

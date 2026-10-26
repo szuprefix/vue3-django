@@ -1,8 +1,7 @@
 <script setup>
-import { ref, shallowRef, watch, markRaw, nextTick } from 'vue'
+import { computed, ref, shallowRef, watch, markRaw, nextTick } from 'vue'
 import { ElTabs, ElTabPane, ElAlert, ElButton, ElDialog, ElDrawer } from 'element-plus'
 import ModelTable from './Table.vue'
-import ModelSelect from './Select.vue'
 import ModelForm from './Form.vue'
 import { useDjango } from '../../composables/context.js'
 import { resolveRelation, relationIds } from '../../core/relations.js'
@@ -20,6 +19,8 @@ const adding = shallowRef(),
   creating = shallowRef(),
   selection = ref([]),
   saving = ref(false)
+// Keep query identity stable when selection/loading events re-render the dialog.
+const selectionQueries = computed(() => adding.value?.selectionQueries ?? {})
 let generation = 0
 async function load() {
   const current = ++generation
@@ -97,11 +98,37 @@ function beginAdd(item) {
   selection.value = []
   adding.value = item
 }
-function addSelected() {
+async function addSelected({ table, scope }) {
   const item = adding.value
-  return updateMembership(item, [
-    ...new Set([...relationIds(props.parent.data[item.multipleField.name]), ...selection.value]),
-  ])
+  saving.value = true
+  error.value = ''
+  try {
+    const rows = await table.resolveSelection(scope)
+    const idField = item.model.config.idField || 'id'
+    const ids = rows.map((row) => row[idField])
+    saving.value = false
+    return await updateMembership(item, [
+      ...new Set([...relationIds(props.parent.data[item.multipleField.name]), ...ids]),
+    ])
+  } catch (cause) {
+    error.value = cause.message
+    emit('error', cause)
+  } finally {
+    saving.value = false
+  }
+}
+const selectionActions = computed(() => [
+  {
+    name: 'add-relation',
+    label: '添加关联',
+    type: 'primary',
+    disabled: saving.value,
+    do: addSelected,
+  },
+])
+function selectRows(rows) {
+  const idField = adding.value?.model.config.idField || 'id'
+  selection.value = rows.map((row) => row[idField])
 }
 function remove(item, row) {
   const id = row[item.model.config.idField || 'id']
@@ -182,11 +209,15 @@ defineExpose({ refresh: load, relations })
             :row-actions="
               item.multipleField
                 ? [
-                    {
-                      name: 'remove-relation',
-                      label: '移出关联',
-                      do: ({ row }) => remove(item, row),
-                    },
+                    'edit',
+                    [
+                      {
+                        name: 'remove-relation',
+                        label: '移除',
+                        icon: 'trash',
+                        do: ({ row }) => remove(item, row),
+                      },
+                    ],
                   ]
                 : undefined
             "
@@ -198,22 +229,46 @@ defineExpose({ refresh: load, relations })
     </ElTabs>
     <ElDialog
       :model-value="Boolean(adding)"
-      title="添加已有记录"
+      :title="`添加已有${adding?.label || '记录'}`"
+      width="90%"
+      destroy-on-close
+      :close-on-click-modal="!saving"
+      :close-on-press-escape="!saving"
+      :show-close="!saving"
       @close="adding = undefined"
     >
-      <ModelSelect
+      <p>
+        勾选记录后，可选择“选中”“全部”或“其余”。全部和其余以当前搜索条件为范围，已有关联会自动合并。
+      </p>
+      <ElAlert
+        v-if="error"
+        :title="error"
+        type="error"
+        :closable="false"
+      />
+      <ModelTable
         v-if="adding"
-        v-model="selection"
+        :key="adding.key"
         :app-model="adding.name"
-        :field="{ multiple: true, label: adding.label }"
+        :items="adding.items"
+        :search-items="adding.searchItems"
+        :base-queries="selectionQueries"
+        :top-actions="['refresh']"
+        :row-actions="[]"
+        :batch-actions="selectionActions"
+        dbl-click-action=""
+        selection
+        @selection-change="selectRows"
+        @loaded="selection = []"
+        @error="error = $event.message"
       />
       <template #footer>
+        <span>已选 {{ selection.length }} 条（当前页）</span>
         <ElButton
-          :loading="saving"
-          :disabled="!selection.length"
-          @click="addSelected"
+          :disabled="saving"
+          @click="adding = undefined"
         >
-          添加关联
+          取消
         </ElButton>
       </template>
     </ElDialog>
