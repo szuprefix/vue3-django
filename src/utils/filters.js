@@ -1,6 +1,6 @@
 // Small compatibility helpers used by migrated media config files.
 export function duration(value) {
-  if (value == null || value === '' || !Number.isFinite(Number(value))) return ''
+  if (value == null || value === '' || !Number.isFinite(Number(value))) return '—'
   const seconds = Math.max(0, Number(value))
   return `${Math.floor(seconds / 60)}'${Math.floor(seconds % 60)}''`
 }

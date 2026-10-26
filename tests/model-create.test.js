@@ -40,7 +40,10 @@ function setup(props = {}) {
 it('列表新增打开抽屉并传默认值，保存后刷新且不触发编辑', async () => {
   const { wrapper, open, query } = setup()
   await flushPromises()
-  expect(wrapper.find('[aria-label="新建"]').text()).toBe('新建')
+  const createButton = wrapper.find('button[aria-label="新建"]')
+  expect(createButton.exists()).toBe(true)
+  expect(createButton.classes()).toContain('vd-action-icon')
+  expect(createButton.text()).toBe('')
   await wrapper
     .findAll('button')
     .find((button) => button.attributes('aria-label') === '新建')
