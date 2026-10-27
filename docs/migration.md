@@ -201,6 +201,10 @@ const actions = [
 `#actions` 插槽可替换操作区域。布局转发 `action-done(result, action)` 和 `error`。
 其他位置也可直接使用 `<Actions>`；抽屉操作需要位于 Layout 子树中。
 
+表单 `widget: 'textarea'` 沿用原版默认自适应高度：最少 8 行、最多 24 行。
+通过字段配置 `autosize: { minRows: 4, maxRows: 12 }` 自定义行数范围，
+也可设为 `true` 随内容自动增高，或 `false` 关闭自适应高度。
+
 JSON 表单组件已迁移到 Vue 3，可从包入口导入 `JsonInput`、`JsonEditor`。
 字段配置支持 `widget: 'JsonInput'` / `widget: 'JsonEditor'`（也支持 `json-input`、
 `json-editor`），或直接传入组件。使用 `v-model` / `update:modelValue` 替代旧版

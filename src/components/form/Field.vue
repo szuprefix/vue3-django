@@ -173,6 +173,9 @@ function mobileInput(v) {
     v-else
     v-model="value"
     :type="['textarea', 'password'].includes(field.widget) ? field.widget : 'text'"
+    :autosize="
+      field.widget === 'textarea' ? (field.autosize ?? { minRows: 8, maxRows: 24 }) : false
+    "
     :maxlength="field.max_length"
     :autocomplete="field.autocomplete"
     :placeholder="field.placeholder ?? [field.label, field.help_text].filter(Boolean).join('\n')"
