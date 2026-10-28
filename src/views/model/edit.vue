@@ -17,6 +17,7 @@ const { registry, revisions, store } = useDjango()
 const appModel = computed(() => props.appModel ?? route.path.split('/').slice(1, 3).join('.'))
 const id = computed(() => (props.mode === 'create' ? undefined : (props.id ?? route.params.id)))
 const data = ref({})
+const savedData = ref({})
 const views = shallowRef()
 const error = ref('')
 const form = ref()
@@ -28,13 +29,37 @@ const parent = computed(() => ({
   viewsConfig: views.value,
 }))
 const panels = computed(() => views.value?.panels ?? views.value?.pannels ?? [])
-const persisted = computed(() => parent.value.id != null)
+const relationParent = computed(() => ({
+  ...registry.get(appModel.value),
+  id: savedData.value[registry.getConfig(appModel.value).idField ?? 'id'] ?? id.value,
+  data: savedData.value,
+  viewsConfig: views.value,
+}))
+const persisted = computed(() => relationParent.value.id != null)
+function snapshot(value) {
+  // API data can contain nested objects; drafts must not mutate the saved snapshot.
+  savedData.value = JSON.parse(JSON.stringify(value))
+}
+function loaded(model) {
+  snapshot(data.value)
+  emit('loaded', model)
+}
+function parentUpdated(value) {
+  const changes = Object.fromEntries(
+    Object.entries(value).filter(
+      ([key, item]) => JSON.stringify(item) !== JSON.stringify(savedData.value[key]),
+    ),
+  )
+  data.value = { ...data.value, ...changes }
+  snapshot(value)
+}
 let generation = 0
 watch(
   () => [appModel.value, id.value],
   async () => {
     const current = ++generation
     data.value = {}
+    savedData.value = {}
     views.value = undefined
     error.value = ''
     activePanels.value = [0]
@@ -52,6 +77,7 @@ watch(
 )
 onBeforeUnmount(() => generation++)
 async function posted(event) {
+  snapshot({ ...savedData.value, ...event.data })
   if (store) store.invalidate(appModel.value)
   else if (revisions) revisions[appModel.value] = (revisions[appModel.value] ?? 0) + 1
   emit('form-posted', event)
@@ -59,6 +85,7 @@ async function posted(event) {
   if (event.intent === 'saveAndAnother') {
     const wasCreating = id.value == null
     data.value = {}
+    savedData.value = {}
     await router.replace(`/${appModel.value.replace('.', '/')}/add/`)
     if (wasCreating) await form.value?.load()
   } else if (id.value == null && event.data[key] != null) {
@@ -90,7 +117,7 @@ defineExpose({ submit: () => form.value?.submit(), load: () => form.value?.load(
     :app-model="appModel"
     :id="id"
     @form-posted="posted"
-    @loaded="emit('loaded', $event)"
+    @loaded="loaded"
     @error="emit('error', $event)"
   >
     <template
@@ -122,8 +149,8 @@ defineExpose({ submit: () => form.value?.submit(), load: () => form.value?.load(
           </ElCollapseItem>
         </ElCollapse>
         <ModelRelations
-          :parent="parent"
-          @parent-updated="data = $event"
+          :parent="relationParent"
+          @parent-updated="parentUpdated"
           @edit="editRelation"
           @error="emit('error', $event)"
         />

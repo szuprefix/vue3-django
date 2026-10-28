@@ -18,6 +18,12 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'uploading', 'error'])
 const value = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) })
 const numberType = computed(() => ['integer', 'decimal', 'float'].includes(props.field.type))
+// ElInputNumber's numeric step also drives its buttons. Set the native constraint
+// separately so decimal input accepts any precision without breaking the controls.
+function setNumberStep(el, { value }) {
+  el.querySelector('input')?.setAttribute('step', value)
+}
+const vNumberStep = { mounted: setNumberStep, updated: setNumberStep }
 const widget = computed(() => toRaw(props.field.widget))
 const jsonWidget = computed(() => {
   const name =
@@ -154,6 +160,7 @@ function mobileInput(v) {
   />
   <ElInputNumber
     v-else-if="numberType"
+    v-number-step="field.type === 'integer' ? '1' : 'any'"
     v-model="value"
     controls-position="right"
     :precision="field.type === 'integer' ? 0 : undefined"

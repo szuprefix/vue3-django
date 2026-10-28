@@ -83,9 +83,31 @@ it('编辑页在 bottom 显示旧 pannels 与关联，父模型使用真实数�
     stubs: { ModelForm: form },
   })
   wrapper.findComponent(form).vm.$emit('update:modelValue', { pk: 7, name: '项目' })
+  wrapper.findComponent(form).vm.$emit('loaded', {})
   await flushPromises()
   expect(wrapper.find('.panel').text()).toBe('项目')
   expect(wrapper.findComponent({ name: 'ModelRelations' }).props('parent').id).toBe(7)
+  const relations = wrapper.findComponent({ name: 'ModelRelations' })
+  const savedParent = relations.props('parent')
+  wrapper.findComponent(form).vm.$emit('update:modelValue', { pk: 7, name: '未保存' })
+  await flushPromises()
+  expect(relations.props('parent')).toBe(savedParent)
+  expect(relations.props('parent').data.name).toBe('项目')
+  expect(wrapper.emitted('form-posted')).toBeUndefined()
+  wrapper.findComponent(form).vm.$emit('form-posted', {
+    data: { pk: 7, name: '已保存' },
+    intent: 'save',
+  })
+  await flushPromises()
+  expect(relations.props('parent').data.name).toBe('已保存')
+  // A persisted membership change must preserve unrelated draft edits.
+  relations.vm.$emit('parent-updated', { pk: 7, name: '已保存', papers: [2] })
+  await flushPromises()
+  expect(wrapper.findComponent(form).props('modelValue')).toEqual({
+    pk: 7,
+    name: '未保存',
+    papers: [2],
+  })
   wrapper.unmount()
 })
 
